@@ -494,17 +494,7 @@ $propsJson = $propsJson -Replace '"', '\"'
 
 az datafactory linked-service create --factory-name $adf --linked-service-name $adxconnection --resource-group $rg --properties "$propsJson"
 
- 
-
-![Machine generated alternative text: New linked service (Azure Data Explorer (Kusto))  Name  adxiiot  Description  Connect via integration runtime  AutaResolvelntegrationRuntime  Authentication method  Managed Identity  Account selection method O  @From Azure subscription C) Enter manually  Azure subscription O  onder (227b4gad-8f51-4cg5-a038-4a7fa6bbb938)  Cluster '  adxiiot  Database  iiatdb  Edit  Managed identity name: SyncAssetModel  Managed identity object ID: 76f6fbe2-1224-4f97-939a-9f91cfS494cO  Grant Data Factory service managed identity access to your Azure Data Explorer (Kusta).  Learn mare CC  Annotations  + New  Advanced O  Create  Back  Test connection  Cancel ](file:///C:/Users/ondery/AppData/Local/Temp/msohtmlclip1/02/clip_image001.png)
-
- 
-
- 
-
- 
-
- 
+  
 
 \#goto ADF create a new pipeline and add below as ADX command (Pipelines -> SyncAssetModel -> SyncADTCommand -> Command -> Command)
 
