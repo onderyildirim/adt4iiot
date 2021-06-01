@@ -74,6 +74,7 @@ fi
 
 networkDeploymentFilePath="templates/networkdeploy.json"
 edgeVMDeploymentFilePath="templates/iotedgedeploy.json"
+simVMDeploymentFilePath="templates/opcsimdeploy.json"
 
 networkDeploymentOutput=$(az deployment group create --name NetworkDeployment --resource-group "$rg" --template-file "$networkDeploymentFilePath" --parameters \
  networkName="$networkName" \
@@ -82,11 +83,33 @@ networkDeploymentOutput=$(az deployment group create --name NetworkDeployment --
 networkRG=${networkDeploymentOutput[0]}
 networkName=${networkDeploymentOutput[1]}
 
-
+echo "Network RG  : $networkRG"
+echo "Network Name: $networkName"
 
 edgeVMDeploymentOutput=$(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$edgeVMDeploymentFilePath" --parameters \
 networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
  --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
+
+vmMachineName=${edgeVMDeploymentOutput[0]}
+vmMachineIP=${edgeVMDeploymentOutput[1]}
+vmAdminUserName=${edgeVMDeploymentOutput[1]}
+
+echo "VM Name: $vmMachineName"
+echo "VM IP: $vmMachineIP"
+echo "VM Admin: $vmAdminUserName"
+
+simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$simVMDeploymentFilePath" --parameters \
+networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
+ --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
+
+vmMachineName=${simVMDeploymentOutput[0]}
+vmMachineIP=${simVMDeploymentOutput[1]}
+vmAdminUserName=${simVMDeploymentOutput[1]}
+
+echo "VM Name: $vmMachineName"
+echo "VM IP: $vmMachineIP"
+echo "VM Admin: $vmAdminUserName"
+
 
 
 function script_usage() {
