@@ -6,46 +6,6 @@ adminUserName="azureuser"
 vmSize="Standard_B1ms"
 adminUserSshPublicKeyPath="$(readlink -f ~/.ssh/id_rsa.pub)"
 
-# while :; do
-#     case $1 in
-#         -h|-\?|--help)
-#             show_help
-#             exit;;
-#         -l=?*)
-#             location=${1#*=}
-#             ;;
-#         -l=)
-#             echo "Location missing"
-#             exit;;
-#         -s=?*)
-#             subscription=${1#*=}
-#             ;;
-#         -prefix=?*)
-#             prefix=${1#*=}
-#             ;;
-#         -prefix=)
-#             echo "Prefix missing"
-#             exit;;
-#         -vmSize=?*)
-#             vmSize=${1#*=}
-#             ;;
-#         -vmSize=)
-#             echo "vmSize missing"
-#             exit;;
-#         -adminUserSshPublicKeyPath=)
-#             echo "SSH public key missing."
-#             exit;;
-#         -adminUserSshPublicKeyPath=?*)
-#             adminUserSshPublicKeyPath=${1#*=}
-#             ;;
-#         --)
-#             shift
-#             break;;
-#         *)
-#             break
-#     esac
-#     shift
-# done
 
 while (( "$#" )); do
   case "$1" in
@@ -141,8 +101,7 @@ echo "Deploying to Azure Subscription: ${subscriptionName} (${subscription})"
 
 if ( $(az group exists -n "$rg") )
 then
-  echo "Resource group $rg already exists. Exiting."
-  exit
+  echo "Resource group $rg already exists."
 else
   az group create --name "$rg" --location "$location" --tags "$prefix" "CreationDate"=$(date --utc +%Y%m%d_%H%M%SZ)  1> /dev/null
   echo "Create resource group $rg"
@@ -152,15 +111,37 @@ networkDeploymentFilePath="templates/networkdeploy.json"
 edgeVMDeploymentFilePath="templates/iotedgedeploy.json"
 simVMDeploymentFilePath="templates/opcsimdeploy.json"
 
-networkDeploymentOutput=$(az deployment group create --name NetworkDeployment --resource-group "$rg" --template-file "$networkDeploymentFilePath" --parameters \
- networkName="$networkName" \
- --query "properties.outputs.[resourceGroup.value, virtualNetwork.value]" -o tsv) 
+if [ ! -z  $(az network vnet list --resource-group "$rg" --query "[?name=='$networkName'].id" --output tsv) ] 
+then
+  echo "Network $networkName already exists."
+else
+  networkDeploymentOutput=$(az deployment group create --name NetworkDeployment --resource-group "$rg" --template-file "$networkDeploymentFilePath" --parameters \
+  networkName="$networkName" \
+  --query "properties.outputs.[resourceGroup.value, virtualNetwork.value]" -o tsv) 
 
-networkRG=${networkDeploymentOutput[0]}
-networkName=${networkDeploymentOutput[1]}
+  outnetworkRG=${networkDeploymentOutput[0]}
+  outnetworkName=${networkDeploymentOutput[1]}
 
-echo "Network RG  : $networkRG"
-echo "Network Name: $networkName"
+  echo "Created network $networkName."
+  echo "Network RG  : $outnetworkRG"
+  echo "Network Name: $outnetworkName"
+fi
+
+$simVMMachineName="$prefix-simvm"
+simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$simVMDeploymentFilePath" --parameters \
+vmMachineName="$simVMMachineName" networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
+ --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
+
+vmMachineName=${simVMDeploymentOutput[0]}
+vmMachineIP=${simVMDeploymentOutput[1]}
+vmAdminUserName=${simVMDeploymentOutput[1]}
+
+echo "VM Name: $vmMachineName"
+echo "VM IP: $vmMachineIP"
+echo "VM Admin: $vmAdminUserName"
+
+
+
 
 edgeVMDeploymentOutput=$(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$edgeVMDeploymentFilePath" --parameters \
 networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
@@ -169,18 +150,6 @@ networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName
 vmMachineName=${edgeVMDeploymentOutput[0]}
 vmMachineIP=${edgeVMDeploymentOutput[1]}
 vmAdminUserName=${edgeVMDeploymentOutput[1]}
-
-echo "VM Name: $vmMachineName"
-echo "VM IP: $vmMachineIP"
-echo "VM Admin: $vmAdminUserName"
-
-simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$simVMDeploymentFilePath" --parameters \
-networkRG="$networkRG" networkName="$networkName" prefix="$prefix" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
- --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
-
-vmMachineName=${simVMDeploymentOutput[0]}
-vmMachineIP=${simVMDeploymentOutput[1]}
-vmAdminUserName=${simVMDeploymentOutput[1]}
 
 echo "VM Name: $vmMachineName"
 echo "VM IP: $vmMachineIP"

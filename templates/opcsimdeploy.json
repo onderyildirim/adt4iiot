@@ -3,6 +3,11 @@
   "contentVersion": "1.0.0.0",
   "parameters": 
   {  
+    "vmMachineName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('prefix'),'-', variables('vmType'))]",
+      "metadata": { "description": "Name of VM" }
+    },
     "prefix": {
       "type": "string",
       "metadata": { "description": "Prefix appended to all resources' name" }
@@ -65,7 +70,7 @@
       }
     },
     {
-      "name": "[concat(parameters('prefix'),'-', variables('vmType'))]",
+      "name": "[parameters('vmMachineName')]",
       "type": "Microsoft.Compute/virtualMachines",
       "location": "[variables('location')]",
       "apiVersion": "2018-10-01",
