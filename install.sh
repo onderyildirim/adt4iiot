@@ -4,7 +4,7 @@ location="eastus2"
 prefix="adt4iiot"
 adminUserName="azureuser"
 vmSize="Standard_B1ms"
-
+adminUserSshPublicKeyPath="$(readlink -f ~/.ssh/id_rsa.pub)"
 
 # while :; do
 #     case $1 in
@@ -88,6 +88,15 @@ while (( "$#" )); do
         exit 1
       fi
       ;;
+    -u|--adminuser)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        adminUserName=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
     -s|--subscription)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         subscription=$2
@@ -110,12 +119,14 @@ done
 echo "location=$location"
 echo "prefix=$prefix"
 echo "adminUserName=$adminUserName"
+echo "adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
 echo "vmSize=$vmSize"
 echo "subscription=$subscription"
 
 rg="$prefix-rg"
 networkName="$prefix-network"
 adminUserSshPublicKey=$(cat $adminUserSshPublicKeyPath)
+
 
 echo "rg=$rg"
 
