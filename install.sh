@@ -6,58 +6,123 @@ adminUserName="azureuser"
 vmSize="Standard_B1ms"
 
 
-while :; do
-    case $1 in
-        -h|-\?|--help)
-            show_help
-            exit;;
-        -l=?*)
-            location=${1#*=}
-            ;;
-        -l=)
-            echo "Location missing"
-            exit;;
-        -s=?*)
-            subscription=${1#*=}
-            ;;
-        -prefix=?*)
-            prefix=${1#*=}
-            ;;
-        -prefix=)
-            echo "Prefix missing"
-            exit;;
-        -vmSize=?*)
-            vmSize=${1#*=}
-            ;;
-        -vmSize=)
-            echo "vmSize missing"
-            exit;;
-        -adminUserSshPublicKeyPath=)
-            echo "SSH public key missing."
-            exit;;
-        -adminUserSshPublicKeyPath=?*)
-            adminUserSshPublicKeyPath=${1#*=}
-            ;;
-        --)
-            shift
-            break;;
-        *)
-            break
-    esac
-    shift
+# while :; do
+#     case $1 in
+#         -h|-\?|--help)
+#             show_help
+#             exit;;
+#         -l=?*)
+#             location=${1#*=}
+#             ;;
+#         -l=)
+#             echo "Location missing"
+#             exit;;
+#         -s=?*)
+#             subscription=${1#*=}
+#             ;;
+#         -prefix=?*)
+#             prefix=${1#*=}
+#             ;;
+#         -prefix=)
+#             echo "Prefix missing"
+#             exit;;
+#         -vmSize=?*)
+#             vmSize=${1#*=}
+#             ;;
+#         -vmSize=)
+#             echo "vmSize missing"
+#             exit;;
+#         -adminUserSshPublicKeyPath=)
+#             echo "SSH public key missing."
+#             exit;;
+#         -adminUserSshPublicKeyPath=?*)
+#             adminUserSshPublicKeyPath=${1#*=}
+#             ;;
+#         --)
+#             shift
+#             break;;
+#         *)
+#             break
+#     esac
+#     shift
+# done
+
+while (( "$#" )); do
+  case "$1" in
+    -h|-\?|--help)
+      show_help
+      exit;;
+    -l|--location)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        location=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -p|--prefix)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        prefix=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -v|--vmsize)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        vmSize=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -k|--ssh-keypath)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        adminUserSshPublicKeyPath=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -s|--subscription)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        subscription=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -*|--*=) 
+      echo "Error: Unsupported argument $1" >&2
+      exit 1
+      ;;
+
+  esac
 done
 
 
 
-
+echo "location=$location"
+echo "prefix=$prefix"
+echo "adminUserName=$adminUserName"
+echo "vmSize=$vmSize"
+echo "subscription=$subscription"
 
 rg="$prefix-rg"
 networkName="$prefix-network"
 adminUserSshPublicKey=$(cat $adminUserSshPublicKeyPath)
 
+echo "rg=$rg"
+
 if [ ! -z $subscription ]; then
   az account set --subscription $subscription
 fi
+
 subscriptionDetails=($(az account show --query '[id, name]' -o tsv))
 subscription=${subscriptionDetails[0]}
 subscriptionName=${subscriptionDetails[1]}
