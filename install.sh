@@ -136,20 +136,18 @@ edgeVMCustomData='#cloud-config\n\napt:\n  preserve_sources_list: true\n  source
 simVMMachineName="$prefix-simvm"
 echo "simVMMachineName=$simVMMachineName"
 simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
-vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" customData="$simVMCustomData" \
- --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachinePublicIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
+vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
+ --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-vmMachineName=${simVMDeploymentOutput[0]}
+vmMachineName     =${simVMDeploymentOutput[0]}
 vmMachinePrivateIP=${simVMDeploymentOutput[1]}
-vmMachinePublicIP=${simVMDeploymentOutput[2]}
-vmMachineFqdn=${simVMDeploymentOutput[3]}
-vmAdminUserName=${simVMDeploymentOutput[4]}
+vmMachineFqdn     =${simVMDeploymentOutput[2]}
+vmAdminUserName   =${simVMDeploymentOutput[3]}
 
-echo "VM Name: $vmMachineName"
+echo "VM Name:       $vmMachineName"
 echo "VM Private IP: $vmMachinePrivateIP"
-echo "VM Public IP: $vmMachinePublicIP"
-echo "VM Fqdn: $vmMachineFqdn"
-echo "VM Admin: $vmAdminUserName"
+echo "VM Fqdn:       $vmMachineFqdn"
+echo "VM Admin:      $vmAdminUserName"
 
 
 
