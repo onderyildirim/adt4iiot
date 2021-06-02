@@ -137,11 +137,13 @@ simVMMachineName="$prefix-simvm"
 echo "simVMMachineName=$simVMMachineName"
 simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
 vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" customData="$simVMCustomData" \
- --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
+ --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachinePublicIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
 vmMachineName=${simVMDeploymentOutput[0]}
-vmMachineIP=${simVMDeploymentOutput[1]}
-vmAdminUserName=${simVMDeploymentOutput[2]}
+vmMachinePrivateIP=${simVMDeploymentOutput[1]}
+vmMachinePublicIP=${simVMDeploymentOutput[2]}
+vmMachineFqdn=${simVMDeploymentOutput[3]}
+vmAdminUserName=${simVMDeploymentOutput[4]}
 
 echo "VM Name: $vmMachineName"
 echo "VM IP: $vmMachineIP"
