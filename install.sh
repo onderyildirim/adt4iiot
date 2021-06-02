@@ -127,40 +127,56 @@ else
   echo "Created network $networkName."
   echo "Network RG  : $outnetworkRG"
   echo "Network Name: $outnetworkName"
+  echo "======================================"
 fi
 
 
 simVMMachineName="$prefix-simvm"
 echo "simVMMachineName=$simVMMachineName"
-simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
-vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
- --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-vmMachineName     =${simVMDeploymentOutput[0]}
-vmMachinePrivateIP=${simVMDeploymentOutput[1]}
-vmMachineFqdn     =${simVMDeploymentOutput[2]}
-vmAdminUserName   =${simVMDeploymentOutput[3]}
+if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$simVMMachineName'].id" --output tsv) ] 
+then
+  echo "VM $simVMMachineName already exists."
+else
+  simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
+  vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
+  --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-echo "VM Name:       $vmMachineName"
-echo "VM Private IP: $vmMachinePrivateIP"
-echo "VM Fqdn:       $vmMachineFqdn"
-echo "VM Admin:      $vmAdminUserName"
+  vmMachineName     =${simVMDeploymentOutput[0]}
+  vmMachinePrivateIP=${simVMDeploymentOutput[1]}
+  vmMachineFqdn     =${simVMDeploymentOutput[2]}
+  vmAdminUserName   =${simVMDeploymentOutput[3]}
+
+  echo "VM Name:       $vmMachineName"
+  echo "VM Private IP: $vmMachinePrivateIP"
+  echo "VM Fqdn:       $vmMachineFqdn"
+  echo "VM Admin:      $vmAdminUserName"
+  echo "======================================"
+fi
+
 
 edgeVMMachineName="$prefix-edgevm"
 echo "edgeVMMachineName=$edgeVMMachineName"
-edgeVMDeploymentOutput=$(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
-vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
- --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-vmMachineName     =${edgeVMDeploymentOutput[0]}
-vmMachinePrivateIP=${edgeVMDeploymentOutput[1]}
-vmMachineFqdn     =${edgeVMDeploymentOutput[2]}
-vmAdminUserName   =${edgeVMDeploymentOutput[3]}
+if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$edgeVMMachineName'].id" --output tsv) ] 
+then
+  echo "VM $edgeVMMachineName already exists."
+else
+  edgeVMDeploymentOutput=$(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
+  vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
+  --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-echo "VM Name:       $vmMachineName"
-echo "VM Private IP: $vmMachinePrivateIP"
-echo "VM Fqdn:       $vmMachineFqdn"
-echo "VM Admin:      $vmAdminUserName"
+  vmMachineName     =${edgeVMDeploymentOutput[0]}
+  vmMachinePrivateIP=${edgeVMDeploymentOutput[1]}
+  vmMachineFqdn     =${edgeVMDeploymentOutput[2]}
+  vmAdminUserName   =${edgeVMDeploymentOutput[3]}
+
+  echo "VM Name:       $vmMachineName"
+  echo "VM Private IP: $vmMachinePrivateIP"
+  echo "VM Fqdn:       $vmMachineFqdn"
+  echo "VM Admin:      $vmAdminUserName"
+  echo "======================================"
+fi
 
 
 function script_usage() {
