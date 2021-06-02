@@ -110,6 +110,8 @@ fi
 networkDeploymentFilePath="templates/networkdeploy.json"
 edgeVMDeploymentFilePath="templates/iotedgedeploy.json"
 simVMDeploymentFilePath="templates/opcsimdeploy.json"
+vmDeploymentFilePath="templates/vmdeploy.json"
+
 
 if [ ! -z  $(az network vnet list --resource-group "$rg" --query "[?name=='$networkName'].id" --output tsv) ] 
 then
@@ -133,13 +135,13 @@ edgeVMCustomData='#cloud-config\n\napt:\n  preserve_sources_list: true\n  source
 
 simVMMachineName="$prefix-simvm"
 echo "simVMMachineName=$simVMMachineName"
-simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$simVMDeploymentFilePath" --parameters \
+simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
 vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" customData="$simVMCustomData" \
  --query "properties.outputs.[vmMachineName.value, vmMachineIP.value, vmAdminUserName.value]" -o tsv) 
 
 vmMachineName=${simVMDeploymentOutput[0]}
 vmMachineIP=${simVMDeploymentOutput[1]}
-vmAdminUserName=${simVMDeploymentOutput[1]}
+vmAdminUserName=${simVMDeploymentOutput[2]}
 
 echo "VM Name: $vmMachineName"
 echo "VM IP: $vmMachineIP"

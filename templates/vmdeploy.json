@@ -37,16 +37,30 @@
   },
   "variables": 
   {
+    "pipName": "[concat(parameters('vmMachineName'),'-pip')]",
     "location": "[resourceGroup().location]"
   },
   "resources": 
   [
     {
+      "name": "[variables('pipName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[variables('location')]",
+      "apiVersion": "2018-11-01",
+      "dependsOn": [],
+      "tags": {},
+      "properties": 
+      {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": { "domainNameLabel": "[concat( parameters('vmMachineName'), uniqueString(resourceGroup().id))]" }
+      }
+    },
+    {
       "name": "[concat(parameters('vmMachineName'),'-nic')]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[variables('location')]",
       "apiVersion": "2018-11-01",
-      "dependsOn": [ ],
+      "dependsOn": [ "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipName'))]" ],
       "properties": 
       {
         "enableAcceleratedNetworking": false,
@@ -57,7 +71,8 @@
             "properties": 
 	          {
               "privateIPAllocationMethod": "Dynamic",
-              "subnet": { "id": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('networkName'), concat(parameters('networkName'),'-subnet'))]" }
+              "subnet": { "id": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('networkName'), concat(parameters('networkName'),'-subnet'))]" },
+              "publicIPAddress": { "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipName'))]" }
             }
           }
         ]
@@ -122,9 +137,17 @@
       "type": "string",
       "value": "[reference(parameters('vmMachineName')).osProfile.computerName]"
     },
-    "vmMachineIP": {
+    "vmMachinePrivateIP": {
       "type": "string",
       "value": "[reference(concat(parameters('vmMachineName'),'-nic')).ipConfigurations[0].properties.privateIPAddress]"
+    },
+    "vmMachinePublicIP": {
+      "type": "string",
+      "value": "[reference(variables('pipName')).ipAddress]"
+    },
+    "vmMachineFqdn": {
+      "type": "string",
+      "value": "[reference(variables('pipName')).dnsSettings.fqdn]"
     },
     "vmAdminUserName": {
       "type": "string",
