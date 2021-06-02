@@ -146,7 +146,9 @@ vmMachineFqdn=${simVMDeploymentOutput[3]}
 vmAdminUserName=${simVMDeploymentOutput[4]}
 
 echo "VM Name: $vmMachineName"
-echo "VM IP: $vmMachineIP"
+echo "VM Private IP: $vmMachinePrivateIP"
+echo "VM Public IP: $vmMachinePublicIP"
+echo "VM Fqdn: $vmMachineFqdn"
 echo "VM Admin: $vmAdminUserName"
 
 
