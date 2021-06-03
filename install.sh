@@ -142,10 +142,10 @@ else
   vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
   --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-  vmMachineName     =${simVMDeploymentOutput[0]}
+  vmMachineName=${simVMDeploymentOutput[0]}
   vmMachinePrivateIP=${simVMDeploymentOutput[1]}
-  vmMachineFqdn     =${simVMDeploymentOutput[2]}
-  vmAdminUserName   =${simVMDeploymentOutput[3]}
+  vmMachineFqdn=${simVMDeploymentOutput[2]}
+  vmAdminUserName=${simVMDeploymentOutput[3]}
 
   echo "VM Name:       $vmMachineName"
   echo "VM Private IP: $vmMachinePrivateIP"
@@ -166,10 +166,10 @@ else
   vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
   --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
 
-  vmMachineName     =${edgeVMDeploymentOutput[0]}
+  vmMachineName=${edgeVMDeploymentOutput[0]}
   vmMachinePrivateIP=${edgeVMDeploymentOutput[1]}
-  vmMachineFqdn     =${edgeVMDeploymentOutput[2]}
-  vmAdminUserName   =${edgeVMDeploymentOutput[3]}
+  vmMachineFqdn=${edgeVMDeploymentOutput[2]}
+  vmAdminUserName=${edgeVMDeploymentOutput[3]}
 
   echo "VM Name:       $vmMachineName"
   echo "VM Private IP: $vmMachinePrivateIP"
