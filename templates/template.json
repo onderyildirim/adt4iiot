@@ -1,0 +1,571 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "prefix": {
+            "defaultValue": "adt4iiot",
+            "type": "String"
+        }
+    },
+    "variables": {
+        "adtName": "[concat(parameters('prefix'),'-assets')]",
+        "adxName": "[concat(parameters('prefix'),'-adx')]",
+        "storageName": "[concat(parameters('prefix'),'storage')]", //storage name allows numbers and lower case letters only
+        "asaName": "[concat(parameters('prefix'),'-hub2adt')]",
+        "funcName": "[concat(parameters('prefix'),'-asa2adt')]",
+        "hubName": "[concat(parameters('prefix'),'-hub')]",
+        "configContainerName": "[concat(parameters('prefix'),'-config')]",
+        "asaConsumerGroup": "asaconsumer",
+        "adxConsumerGroup": "adxconsumer",
+        "location": "[resourceGroup().location]"
+    },
+    "resources": [
+        // {
+        //     "type": "Microsoft.DigitalTwins/digitalTwinsInstances",
+        //     "apiVersion": "2020-12-01",
+        //     "name": "[variables('adtName')]",
+        //     "location": "[variables('location')]",
+        //     "properties": {
+        //         "privateEndpointConnections": [],
+        //         "publicNetworkAccess": "Enabled"
+        //     }
+        // }
+        // ,
+        // {
+        //     "type": "Microsoft.Kusto/Clusters",
+        //     "apiVersion": "2020-09-18",
+        //     "name": "[variables('adxName')]",
+        //     "location": "[variables('location')]",
+        //     "sku": {
+        //         "name": "Dev(No SLA)_Standard_E2a_v4",
+        //         "tier": "Basic",
+        //         "capacity": 1
+        //     },
+        //     "identity": {
+        //         "type": "SystemAssigned"
+        //     },
+        //     "properties": {
+        //         "trustedExternalTenants": [],
+        //         "enableDiskEncryption": false,
+        //         "enableStreamingIngest": false,
+        //         "enablePurge": false,
+        //         "enableDoubleEncryption": false,
+        //         "engineType": "V3"
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Storage/storageAccounts",
+        //     "apiVersion": "2021-04-01",
+        //     "name": "[variables('storageName')]",
+        //     "location": "[variables('location')]",
+        //     "sku": {
+        //         "name": "Standard_LRS",
+        //         "tier": "Standard"
+        //     },
+        //     "kind": "StorageV2",
+        //     "properties": {
+        //         "isHnsEnabled": true,
+        //         "networkAcls": {
+        //             "bypass": "AzureServices",
+        //             "virtualNetworkRules": [],
+        //             "ipRules": [],
+        //             "defaultAction": "Allow"
+        //         },
+        //         "supportsHttpsTrafficOnly": false,
+        //         "encryption": {
+        //             "services": {
+        //                 "file": {
+        //                     "keyType": "Account",
+        //                     "enabled": true
+        //                 },
+        //                 "blob": {
+        //                     "keyType": "Account",
+        //                     "enabled": true
+        //                 }
+        //             },
+        //             "keySource": "Microsoft.Storage"
+        //         },
+        //         "accessTier": "Hot"
+        //     },
+        //     "resources": [
+        //         {
+        //             "type": "blobServices/containers",
+        //             "apiVersion": "2018-03-01-preview",
+        //             "name": "[concat('default/', variables('configContainerName'))]",
+        //             "dependsOn": [
+        //                 "[variables('storageName')]"
+        //             ],
+        //             "properties": {
+        //                 "publicAccess": "Container"
+        //             }
+        //         }
+        //     ]
+        // }
+        // ,
+        // {
+        //     "type": "Microsoft.StreamAnalytics/streamingjobs",
+        //     "apiVersion": "2017-04-01-preview",
+        //     "name": "[variables('asaName')]",
+        //     "location": "[variables('location')]",
+        //     "properties": {
+        //         "sku": {
+        //             "name": "Standard"
+        //         },
+        //         "dataLocale": "en-US",
+        //         "compatibilityLevel": "1.2",
+        //         "contentStoragePolicy": "SystemAccount",
+        //         "jobType": "Cloud",
+        //         "inputs": [
+        //             {
+        //                 "name": "[variables('hubName')]",
+        //                 "properties": {
+        //                     "type": "stream",
+        //                     "serialization": {
+        //                         "type": "JSON",
+        //                         "properties": {
+        //                             "encoding": "UTF8",
+        //                             "format": "Array"
+        //                         }
+        //                     },
+        //                     "datasource": {
+        //                         "type": "Microsoft.ServiceBus/IotHubs",
+        //                         "properties": {
+        //                             "iotHubNamespace": "[variables('hubName')]",
+        //                             "sharedAccessPolicyName": "iothubowner",
+        //                             "sharedAccessPolicyKey": "[listKeys(resourceId('Microsoft.Devices/IotHubs/Iothubkeys', variables('hubName'), 'iothubowner'), '2016-02-03').primaryKey]",
+        //                             "consumerGroupName": "[variables('asaConsumerGroup')]",
+        //                             "endpoint": "messages/events"
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         ],
+        //         "transformation": {
+        //             "name": "Transformation",
+        //             "properties": {
+        //                 "streamingUnits": 1,
+        //                 "query": "[concat('WITH LastInWindow AS (\r\n     SELECT\r\n          TagId, MAX([Timestamp]) AS LastEventTime\r\n     FROM\r\n          ', variables('hubName'), ' TIMESTAMP BY [Timestamp]\r\n     GROUP BY\r\n          TagId, TumblingWindow(second, 60) )\r\n SELECT\r\n      hub.TagId,\r\n     hub.[Timestamp],\r\n     hub.Value\r\n INTO ', variables('funcName'), ' \r\n FROM\r\n     ', variables('hubName'), ' as hub TIMESTAMP BY [Timestamp]\r\n      INNER JOIN LastInWindow\r\n     ON DATEDIFF(second, hub, LastInWindow) BETWEEN 0 AND 60\r\n     AND hub.[Timestamp] = LastInWindow.LastEventTime\r\n     AND hub.TagId = LastInWindow.TagId')]"
+        //             }
+        //         },
+        //         "outputs": [
+        //             {
+        //                 "name": "[variables('funcName')]",
+        //                 "properties": {
+        //                   "serialization": {
+        //                     "type": "Json",
+        //                     "properties": {
+        //                       "encoding": "UTF8",
+        //                       "format": "Array"
+        //                     }
+        //                   },
+        //                   "datasource": {
+        //                     "type": "Microsoft.AzureFunction",
+        //                     "properties": {
+        //                         "functionAppName": "[variables('funcName')]",
+        //                         "functionName": "UpdateTelemetry",
+        //                         "apiKey": null
+        //                     }
+        //                   }
+        //                 }
+        //               }
+        //         ]
+        //     }
+        // },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "name": "[variables('funcName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic"
+            },
+            "kind": "app",
+            "properties": {
+                "name": "[variables('funcName')]",
+                "computeMode": "Dynamic"
+            }
+        },
+         {
+              "apiVersion": "2015-08-01",
+              "type": "Microsoft.Web/sites",
+              "name": "functionApp",
+              "location": "[resourceGroup().location]",
+              "kind": "functionapp",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('funcName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+              ],
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcName'))]",
+                "siteConfig": {
+                  "appSettings": [
+                    {
+                      "name": "AzureWebJobsDashboard",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                    },
+                    {
+                      "name": "AzureWebJobsStorage",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                    },
+                    {
+                      "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                    },
+                    {
+                      "name": "WEBSITE_CONTENTSHARE",
+                      "value": "[variables('funcName')]"
+                    },
+                    {
+                      "name": "FUNCTIONS_EXTENSION_VERSION",
+                      "value": "~3"
+                    },
+                    {
+                      "name": "FUNCTIONS_WORKER_RUNTIME",
+                      "value": "dotnet"
+                    },
+                    {
+                      "name": "DEBUG_MODE",
+                      "value": "false"
+                    },
+                    {
+                      "name": "ADT_SERVICE_URL",
+                      "value": "false"
+                    },
+                    {
+                      "name": "MAPFILE_BLOB_CONNECTION_STRING",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                    },
+                    {
+                      "name": "MAPFILE_BLOB_CONTAINERNAME",
+                      "value": "[variables('configContainerName')]"
+                    },
+                    {
+                      "name": "MAPFILE_PATH",
+                      "value": "assetid2dtid.csv"
+                    }
+                  ]
+                }
+              },
+              "resources": [
+                  {
+                      "apiVersion": "2015-08-01",
+                      "name": "web",
+                      "type": "sourcecontrols",
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites/', variables('funcName'))]"
+                      ],
+                      "properties": {
+                          "RepoUrl": "https://github.com/onderyildirim/adt4iiot.git",
+                          "branch": "master",
+                          "publishRunbook": true,
+                          "IsManualIntegration": true
+                      }
+                 }
+              ]
+            }        
+        //,
+        // {
+        //     "type": "Microsoft.Storage/storageAccounts/blobServices",
+        //     "apiVersion": "2021-04-01",
+        //     "name": "[concat(variables('storageName'), '/default')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        //     ],
+        //     "sku": {
+        //         "name": "Standard_LRS",
+        //         "tier": "Standard"
+        //     },
+        //     "properties": {
+        //         "cors": {
+        //             "corsRules": []
+        //         },
+        //         "deleteRetentionPolicy": {
+        //             "enabled": false
+        //         }
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Storage/storageAccounts/fileServices",
+        //     "apiVersion": "2021-04-01",
+        //     "name": "[concat(variables('storageName'), '/default')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        //     ],
+        //     "sku": {
+        //         "name": "Standard_LRS",
+        //         "tier": "Standard"
+        //     },
+        //     "properties": {
+        //         "protocolSettings": {
+        //             "smb": {}
+        //         },
+        //         "cors": {
+        //             "corsRules": []
+        //         },
+        //         "shareDeleteRetentionPolicy": {
+        //             "enabled": true,
+        //             "days": 7
+        //         }
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Storage/storageAccounts/queueServices",
+        //     "apiVersion": "2021-04-01",
+        //     "name": "[concat(variables('storageName'), '/default')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        //     ],
+        //     "properties": {
+        //         "cors": {
+        //             "corsRules": []
+        //         }
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Storage/storageAccounts/tableServices",
+        //     "apiVersion": "2021-04-01",
+        //     "name": "[concat(variables('storageName'), '/default')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        //     ],
+        //     "properties": {
+        //         "cors": {
+        //             "corsRules": []
+        //         }
+        //     }
+        // },
+        // // {
+        // //     "type": "Microsoft.StreamAnalytics/streamingjobs/inputs",
+        // //     "apiVersion": "2017-04-01-preview",
+        // //     "name": "[concat(variables('asaName'), '/', variables('hubName'))]",
+        // //     "dependsOn": [
+        // //         "[resourceId('Microsoft.StreamAnalytics/streamingjobs', variables('asaName'))]"
+        // //     ],
+        // //     "properties": {
+        // //         "type": "Stream",
+        // //         "datasource": {
+        // //             "type": "Microsoft.Devices/IotHubs",
+        // //             "properties": {
+        // //                 "iotHubNamespace": "[variables('hubName')]",
+        // //                 "sharedAccessPolicyName": "iothubowner",
+        // //                 "endpoint": "messages/events",
+        // //                 "consumerGroupName": "[variables('asaConsumerGroup')]"
+        // //             }
+        // //         },
+        // //         "compression": {
+        // //             "type": "None"
+        // //         },
+        // //         "serialization": {
+        // //             "type": "Json",
+        // //             "properties": {
+        // //                 "encoding": "UTF8"
+        // //             }
+        // //         }
+        // //     }
+        // // },
+        // // {
+        // //     "type": "Microsoft.StreamAnalytics/streamingjobs/outputs",
+        // //     "apiVersion": "2017-04-01-preview",
+        // //     "name": "[concat(variables('asaName'), '/adt')]",
+        // //     "dependsOn": [
+        // //         "[resourceId('Microsoft.StreamAnalytics/streamingjobs', variables('asaName'))]"
+        // //     ],
+        // //     "properties": {
+        // //         "datasource": {
+        // //             "type": "Microsoft.AzureFunction",
+        // //             "properties": {
+        // //                 "functionAppName": "[variables('funcName')]",
+        // //                 "functionName": "UpdateTelemetry"
+        // //             }
+        // //         }
+        // //     }
+        // // },
+        // {
+        //     "type": "Microsoft.Web/sites",
+        //     "apiVersion": "2018-11-01",
+        //     "name": "[variables('funcName')]",
+        //     "location": "[variables('location')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Web/serverfarms', variables('funcName'))]"
+        //     ],
+        //     "kind": "functionapp",
+        //     "identity": {
+        //         "type": "SystemAssigned"
+        //     },
+        //     "properties": {
+        //         "enabled": true,
+        //         "hostNameSslStates": [
+        //             {
+        //                 "name": "[concat(variables('funcName'), '.azurewebsites.net')]",
+        //                 "sslState": "Disabled",
+        //                 "hostType": "Standard"
+        //             },
+        //             {
+        //                 "name": "[concat(variables('funcName'), '.scm.azurewebsites.net')]",
+        //                 "sslState": "Disabled",
+        //                 "hostType": "Repository"
+        //             }
+        //         ],
+        //         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcName'))]",
+        //         "reserved": false,
+        //         "isXenon": false,
+        //         "hyperV": false,
+        //         "siteConfig": {},
+        //         "scmSiteAlsoStopped": false,
+        //         "clientAffinityEnabled": false,
+        //         "clientCertEnabled": false,
+        //         "hostNamesDisabled": false,
+        //         "containerSize": 1536,
+        //         "dailyMemoryTimeQuota": 0,
+        //         "httpsOnly": false,
+        //         "redundancyMode": "None"
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Web/sites/config",
+        //     "apiVersion": "2018-11-01",
+        //     "name": "[concat(variables('funcName'), '/web')]",
+        //     "location": "[variables('location')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+        //     ],
+        //     "properties": {
+        //         "numberOfWorkers": 1,
+        //         "defaultDocuments": [
+        //             "Default.htm",
+        //             "Default.html",
+        //             "Default.asp",
+        //             "index.htm",
+        //             "index.html",
+        //             "iisstart.htm",
+        //             "default.aspx",
+        //             "index.php"
+        //         ],
+        //         "netFrameworkVersion": "v4.0",
+        //         "phpVersion": "5.6",
+        //         "requestTracingEnabled": false,
+        //         "remoteDebuggingEnabled": false,
+        //         "remoteDebuggingVersion": "VS2019",
+        //         "httpLoggingEnabled": false,
+        //         "logsDirectorySizeLimit": 35,
+        //         "detailedErrorLoggingEnabled": false,
+        //         "publishingUsername": "$AsaToAdtWin",
+        //         "azureStorageAccounts": {},
+        //         "scmType": "None",
+        //         "use32BitWorkerProcess": true,
+        //         "webSocketsEnabled": false,
+        //         "alwaysOn": true,
+        //         "managedPipelineMode": "Integrated",
+        //         "virtualApplications": [
+        //             {
+        //                 "virtualPath": "/",
+        //                 "physicalPath": "site\\wwwroot",
+        //                 "preloadEnabled": true
+        //             }
+        //         ],
+        //         "loadBalancing": "LeastRequests",
+        //         "experiments": {
+        //             "rampUpRules": []
+        //         },
+        //         "autoHealEnabled": false,
+        //         "localMySqlEnabled": false,
+        //         "managedServiceIdentityId": 11116,
+        //         "ipSecurityRestrictions": [
+        //             {
+        //                 "ipAddress": "Any",
+        //                 "action": "Allow",
+        //                 "priority": 1,
+        //                 "name": "Allow all",
+        //                 "description": "Allow all access"
+        //             }
+        //         ],
+        //         "scmIpSecurityRestrictions": [
+        //             {
+        //                 "ipAddress": "Any",
+        //                 "action": "Allow",
+        //                 "priority": 1,
+        //                 "name": "Allow all",
+        //                 "description": "Allow all access"
+        //             }
+        //         ],
+        //         "scmIpSecurityRestrictionsUseMain": false,
+        //         "http20Enabled": false,
+        //         "minTlsVersion": "1.2",
+        //         "ftpsState": "AllAllowed",
+        //         "reservedInstanceCount": 0
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Web/sites/deployments",
+        //     "apiVersion": "2018-11-01",
+        //     "name": "[concat(variables('funcName'), '/8658c6ba7d4348cc8a901e06d60a038a')]",
+        //     "location": "[variables('location')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+        //     ],
+        //     "properties": {
+        //         "status": 4,
+        //         "author_email": "N/A",
+        //         "author": "N/A",
+        //         "deployer": "ZipDeploy",
+        //         "message": "Created via a push deployment",
+        //         "start_time": "2021-05-10T21:37:24.557802Z",
+        //         "end_time": "2021-05-10T21:37:35.4497772Z",
+        //         "active": false
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Web/sites/functions",
+        //     "apiVersion": "2018-11-01",
+        //     "name": "[concat(variables('funcName'), '/UpdateTelemetry')]",
+        //     "location": "[variables('location')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+        //     ],
+        //     "properties": {
+        //         "script_root_path_href": "[concat('https://', variables('funcName'), '.azurewebsites.net/admin/vfs/site/wwwroot/UpdateTelemetry/')]",
+        //         "script_href": "[concat('https://', variables('funcName'), '.azurewebsites.net/admin/vfs/site/wwwroot/bin/AsaToAdtWin.dll')]",
+        //         "config_href": "[concat('https://', variables('funcName'), '.azurewebsites.net/admin/vfs/site/wwwroot/UpdateTelemetry/function.json')]",
+        //         "href": "[concat('https://', variables('funcName'), '.azurewebsites.net/admin/functions/UpdateTelemetry')]",
+        //         "config": {}
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Web/sites/hostNameBindings",
+        //     "apiVersion": "2018-11-01",
+        //     "name": "[concat(variables('funcName'), '/', variables('funcName'), '.azurewebsites.net')]",
+        //     "location": "[variables('location')]",
+        //     "dependsOn": [
+        //         "[resourceId('Microsoft.Web/sites', variables('funcName'))]"
+        //     ],
+        //     "properties": {
+        //         "siteName": "[variables('funcName')]",
+        //         "hostNameType": "Verified"
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Devices/IotHubs",
+        //     "apiVersion": "2021-03-31",
+        //     "name": "[variables('hubName')]",
+        //     "location": "[variables('location')]",
+        //     "sku": {
+        //         "name": "S1",
+        //         "tier": "Standard",
+        //         "capacity": 1
+        //     }
+        // },
+        // {
+        //     "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+        //     "apiVersion": "2020-03-01",
+        //     "name": "[concat(variables('adxConsumerGroup'), '/events/cg1')]", 
+        //     "dependsOn": ["[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]"]
+        // },
+        // {
+        //     "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+        //     "apiVersion": "2020-03-01",
+        //     "name": "[concat(variables('asaConsumerGroup'), '/events/cg1')]", 
+        //     "dependsOn": ["[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]"]
+        // }
+    ]
+}
