@@ -74,7 +74,10 @@ while (( "$#" )); do
   esac
 done
 
-
+if [ ${#prefix} -gt 10 ]; then
+  echo "prefix length should be less than 10 chars. prefix=$prefix"
+  exit
+fi
 
 echo "location=$location"
 echo "prefix=$prefix"
