@@ -18,69 +18,6 @@
         ]
     },
     {
-    "@id": "dtmi:assetmodel:opcasset;1",
-    "@context": "dtmi:dtdl:context;2",
-    "@type": "Interface",
-    "displayName": "Base Interface for OPC UA Assets",
-    "contents": [
-        {
-            "@type": "Property",
-            "name": "NodeId",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "EndpointUrl",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "UseSecurity",
-            "schema": "boolean"
-        },
-        {
-            "@type": "Property",
-            "name": "OpcAuthenticationMode",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "OpcAuthenticationUsername",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "OpcAuthenticationPassword",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "OpcSamplingInterval",
-            "schema": "integer"
-        },
-        {
-            "@type": "Property",
-            "name": "OpcPublishingInterval",
-            "schema": "integer"
-        },
-        {
-            "@type": "Property",
-            "name": "DisplayName",
-            "schema": "string"
-        },
-        {
-            "@type": "Property",
-            "name": "HeartbeatInterval",
-            "schema": "integer"
-        },
-        {
-            "@type": "Property",
-            "name": "SkipFirst",
-            "schema": "boolean"
-        }
-        ]
-    },
-    {
     "@id": "dtmi:assetmodel:enterprise;1",
     "@context": "dtmi:dtdl:context;2",
     "@type": "Interface",
@@ -158,74 +95,21 @@
     "displayName": "Asset",
     "contents": [
         {
-            "@type": "Component",
-            "name": "OPCUA",
-            "schema": "dtmi:assetmodel:opcasset;1"
-        },
-        {
             "@type": "Property",
-            "name": "BatchID",
-            "schema": "string",
+            "name": "SV",
+            "schema": "integer",
             "writable": true
         },
         {
             "@type": "Property",
-            "name": "Fault_Code",
-            "schema": "string",
+            "name": "TV",
+            "schema": "integer",
             "writable": true
         },
         {
             "@type": "Property",
-            "name": "Object",
-            "schema": "string",
-            "writable": true
-        },
-        {
-            "@type": "Property",
-            "name": "Process_Cell",
-            "schema": "string",
-            "writable": true
-        },
-        {
-            "@type": "Property",
-            "name": "PV",
-            "schema": "string",
-            "writable": true
-        },
-        {
-            "@type": "Property",
-            "name": "SP",
-            "schema": "string",
-            "writable": true
-        },
-        {
-            "@type": "Property",
-            "name": "Status_Code",
-            "schema": "string",
-            "writable": true
-        }, 
-        {
-            "@type": "Property",
-            "name": "Unit",
-            "schema": "string",
-            "writable": true
-        }, 
-        {
-            "@type": "Property",
-            "name": "Batch_Type",
-            "schema": "string",
-            "writable": true
-        }, 
-        {
-            "@type": "Property",
-            "name": "Status_MSG",
-            "schema": "string",
-            "writable": true
-        }, 
-        {
-            "@type": "Property",
-            "name": "UOM",
-            "schema": "string",
+            "name": "STATUS",
+            "schema": "integer",
             "writable": true
         }
         ]

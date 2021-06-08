@@ -10,6 +10,9 @@
     "variables": {
         "adtName": "[concat(parameters('prefix'),'-assets')]",
         "adxName": "[concat(parameters('prefix'),'adx')]", //cluster name allows numbers and lower case letters only
+        "adxDbName": "iiotdb",
+        "adfName": "[concat(parameters('prefix'),'-syncassets')]",
+        "adfPipelineName": "SyncAssetModel",
         "storageName": "[concat(parameters('prefix'),'storage')]", //storage name allows numbers and lower case letters only
         "asaName": "[concat(parameters('prefix'),'-hub2adt')]",
         "funcAppName": "[concat(parameters('prefix'),'-asa2adt')]",
@@ -54,6 +57,19 @@
             }
         },
         {
+            "name": "[concat(variables('adxName'), '/', variables('adxDbName'))]",
+            "type": "Microsoft.Kusto/clusters/databases",
+            "apiVersion": "2020-06-14",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Kusto/clusters', variables('adxName'))]"
+            ],
+            "properties": {
+                "softDeletePeriodInDays": 365,
+                "hotCachePeriodInDays": 31
+            }
+        },
+        {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2021-04-01",
             "name": "[variables('storageName')]",
@@ -93,7 +109,7 @@
                     "apiVersion": "2018-03-01-preview",
                     "name": "[concat('default/', variables('configContainerName'))]",
                     "dependsOn": [
-                        "[variables('storageName')]"
+                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
                     ],
                     "properties": {
                         "publicAccess": "Container"
@@ -148,34 +164,33 @@
                         "streamingUnits": 1,
                         "query": "[concat('WITH LastInWindow AS (\r\n     SELECT\r\n          TagId, MAX([Timestamp]) AS LastEventTime\r\n     FROM\r\n          ', variables('hubName'), ' TIMESTAMP BY [Timestamp]\r\n     GROUP BY\r\n          TagId, TumblingWindow(second, 60) )\r\n SELECT\r\n      hub.TagId,\r\n     hub.[Timestamp],\r\n     hub.Value\r\n INTO ', variables('funcAppName'), ' \r\n FROM\r\n     ', variables('hubName'), ' as hub TIMESTAMP BY [Timestamp]\r\n      INNER JOIN LastInWindow\r\n     ON DATEDIFF(second, hub, LastInWindow) BETWEEN 0 AND 60\r\n     AND hub.[Timestamp] = LastInWindow.LastEventTime\r\n     AND hub.TagId = LastInWindow.TagId')]"
                     }
-                }
-                // ,
-                // "outputs": [
-                //     {
-                //         "name": "[variables('funcAppName')]",
-                //         "dependsOn": [
-                //             "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]",
-                //             "[resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName'))]"
-                //         ],
-                //         "properties": {
-                //             "serialization": {
-                //                 "type": "Json",
-                //                 "properties": {
-                //                     "encoding": "UTF8",
-                //                     "format": "Array"
-                //                 }
-                //             },
-                //             "datasource": {
-                //                 "type": "Microsoft.AzureFunction",
-                //                 "properties": {
-                //                     "functionAppName": "[variables('funcAppName')]",
-                //                     "functionName": "[variables('funcName')]",
-                //                     "apiKey": "[listsecrets(resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName')),'2015-08-01').key]"
-                //                 }
-                //             }
-                //         }
-                //     }
-                // ]
+                },
+                "outputs": [
+                    {
+                        "name": "[variables('funcAppName')]",
+                        "dependsOn": [
+                            "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
+                            //,"[resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName'))]"
+                        ],
+                        "properties": {
+                            "serialization": {
+                                "type": "Json",
+                                "properties": {
+                                    "encoding": "UTF8",
+                                    "format": "Array"
+                                }
+                            },
+                            "datasource": {
+                                "type": "Microsoft.AzureFunction",
+                                "properties": {
+                                    "functionAppName": "[variables('funcAppName')]",
+                                    "functionName": "[variables('funcName')]",
+                                    "apiKey": "[listsecrets(resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName')),'2015-08-01').key]"
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -210,98 +225,85 @@
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcAppName'))]",
                 "siteConfig": {
                     "appSettings": [
-            {
-              "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-            },
-            {
-              "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-            },
-            {
-              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-            },
-            {
-              "name": "WEBSITE_CONTENTSHARE",
-              "value": "[variables('funcAppName')]"
-            },
-            {
-              "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~3"
-            },
-            {
-              "name": "FUNCTIONS_WORKER_RUNTIME",
-              "value": "dotnet"
-            },                    //     {
-                    //         "name": "AzureWebJobsDashboard",
-                    //         "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-                    //     },
-                    //     {
-                    //         "name": "AzureWebJobsStorage",
-                    //         "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-                    //     },
-                    //     // {
-                    //     //     "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-                    //     //     "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-                    //     // },
-                    //     {
-                    //         "name": "FUNCTIONS_EXTENSION_VERSION",
-                    //         "value": "~3"
-                    //     },
-                    //     {
-                    //         "name": "FUNCTIONS_WORKER_RUNTIME",
-                    //         "value": "dotnet"
-                    //     },
+                        // {
+                        //     "name": "AzureWebJobsDashboard",
+                        //     "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                        // },
+                        // {
+                        //     "name": "AzureWebJobsStorage",
+                        //     "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                        // },
+                        // {
+                        //     "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                        //     "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                        // },
+                        // {
+                        //     "name": "WEBSITE_CONTENTSHARE",
+                        //     "value": "[variables('funcAppName')]"
+                        // },
                         {
-                            "name": "DEBUG_MODE",
-                            "value": "false"
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~3"
                         },
-                        {
-                            "name": "ADT_SERVICE_URL",
-                            "value": ""
-                        },
-                        {
-                            "name": "MAPFILE_BLOB_CONNECTION_STRING",
-                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
-                        },
-                        {
-                            "name": "MAPFILE_BLOB_CONTAINERNAME",
-                            "value": "[variables('configContainerName')]"
-                        },
-                        {
-                            "name": "MAPFILE_PATH",
-                            "value": "assetid2dtid.csv"
-                        },
+                        // {
+                        //     "name": "FUNCTIONS_WORKER_RUNTIME",
+                        //     "value": "dotnet"
+                        // },
+                        // {
+                        //     "name": "DEBUG_MODE",
+                        //     "value": "false"
+                        // },
+                        // {
+                        //     "name": "ADT_SERVICE_URL",
+                        //     "value": ""
+                        // },
+                        // {
+                        //     "name": "MAPFILE_BLOB_CONNECTION_STRING",
+                        //     "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]"
+                        // },
+                        // {
+                        //     "name": "MAPFILE_BLOB_CONTAINERNAME",
+                        //     "value": "[variables('configContainerName')]"
+                        // },
+                        // {
+                        //     "name": "MAPFILE_PATH",
+                        //     "value": "assetid2dtid.csv"
+                        // },
                         {
                             "name": "Project",
-                            "value": "AsaToAdt\\AsaToAdt.csproj"
+                            "value": "AsaToAdt"
+                        },
+                        {
+                            "name": "AzureWebJobsSecretStorageType",
+                            "value": "Files"
                         }
                     ]
                 }
-            }
-            ,
+            },
             "resources": [
-                // {
-                //     "apiVersion": "2015-04-01",
-                //     "name": "appsettings",
-                //     "type": "config",
-                //     "dependsOn": [
-                //         "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
-                //     ],
-                //     "properties": {
-                //         "PROJECT": "AsaToAdt\\AsaToAdt.csproj",
-                //         "AzureWebJobsDashboard": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
-                //         "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
-                //         "FUNCTIONS_EXTENSION_VERSION": "~3",
-                //         "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-                //         "DEBUG_MODE": "false",
-                //         "ADT_SERVICE_URL": "",
-                //         "MAPFILE_BLOB_CONNECTION_STRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
-                //         "MAPFILE_BLOB_CONTAINERNAME": "[variables('configContainerName')]",
-                //         "MAPFILE_PATH": "assetid2dtid.csv"
-                //     }
-                // },
+                {
+                    "apiVersion": "2015-08-01",
+                    "name": "appsettings",
+                    "type": "config",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]",
+                        "[resourceId('Microsoft.Web/Sites/sourcecontrols', variables('funcAppName'), 'web')]",
+                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+                    ],
+                    "properties": {
+                        "Project": "AsaToAdt",
+                        "AzureWebJobsDashboard": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
+                        "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
+                        "AzureWebJobsSecretStorageType": "Files",
+                        "FUNCTIONS_EXTENSION_VERSION": "~3",
+                        "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+                        "DEBUG_MODE": "false",
+                        "ADT_SERVICE_URL": "",
+                        "MAPFILE_BLOB_CONNECTION_STRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(variables('storageName'),'2015-05-01-preview').key1)]",
+                        "MAPFILE_BLOB_CONTAINERNAME": "[variables('configContainerName')]",
+                        "MAPFILE_PATH": "assetid2dtid.csv"
+                    }
+                },
                 {
                     "apiVersion": "2015-08-01",
                     "name": "web",
@@ -312,293 +314,11 @@
                     "properties": {
                         "RepoUrl": "https://github.com/onderyildirim/adt4iiot.git",
                         "branch": "main",
-                        "publishRunbook": true,
                         "IsManualIntegration": true
                     }
                 }
             ]
-        }
-        //,
-        // {
-        //     "type": "Microsoft.Storage/storageAccounts/blobServices",
-        //     "apiVersion": "2021-04-01",
-        //     "name": "[concat(variables('storageName'), '/default')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
-        //     ],
-        //     "sku": {
-        //         "name": "Standard_LRS",
-        //         "tier": "Standard"
-        //     },
-        //     "properties": {
-        //         "cors": {
-        //             "corsRules": []
-        //         },
-        //         "deleteRetentionPolicy": {
-        //             "enabled": false
-        //         }
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Storage/storageAccounts/fileServices",
-        //     "apiVersion": "2021-04-01",
-        //     "name": "[concat(variables('storageName'), '/default')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
-        //     ],
-        //     "sku": {
-        //         "name": "Standard_LRS",
-        //         "tier": "Standard"
-        //     },
-        //     "properties": {
-        //         "protocolSettings": {
-        //             "smb": {}
-        //         },
-        //         "cors": {
-        //             "corsRules": []
-        //         },
-        //         "shareDeleteRetentionPolicy": {
-        //             "enabled": true,
-        //             "days": 7
-        //         }
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Storage/storageAccounts/queueServices",
-        //     "apiVersion": "2021-04-01",
-        //     "name": "[concat(variables('storageName'), '/default')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
-        //     ],
-        //     "properties": {
-        //         "cors": {
-        //             "corsRules": []
-        //         }
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Storage/storageAccounts/tableServices",
-        //     "apiVersion": "2021-04-01",
-        //     "name": "[concat(variables('storageName'), '/default')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
-        //     ],
-        //     "properties": {
-        //         "cors": {
-        //             "corsRules": []
-        //         }
-        //     }
-        // },
-        // // {
-        // //     "type": "Microsoft.StreamAnalytics/streamingjobs/inputs",
-        // //     "apiVersion": "2017-04-01-preview",
-        // //     "name": "[concat(variables('asaName'), '/', variables('hubName'))]",
-        // //     "dependsOn": [
-        // //         "[resourceId('Microsoft.StreamAnalytics/streamingjobs', variables('asaName'))]"
-        // //     ],
-        // //     "properties": {
-        // //         "type": "Stream",
-        // //         "datasource": {
-        // //             "type": "Microsoft.Devices/IotHubs",
-        // //             "properties": {
-        // //                 "iotHubNamespace": "[variables('hubName')]",
-        // //                 "sharedAccessPolicyName": "iothubowner",
-        // //                 "endpoint": "messages/events",
-        // //                 "consumerGroupName": "[variables('asaConsumerGroup')]"
-        // //             }
-        // //         },
-        // //         "compression": {
-        // //             "type": "None"
-        // //         },
-        // //         "serialization": {
-        // //             "type": "Json",
-        // //             "properties": {
-        // //                 "encoding": "UTF8"
-        // //             }
-        // //         }
-        // //     }
-        // // },
-        // // {
-        // //     "type": "Microsoft.StreamAnalytics/streamingjobs/outputs",
-        // //     "apiVersion": "2017-04-01-preview",
-        // //     "name": "[concat(variables('asaName'), '/adt')]",
-        // //     "dependsOn": [
-        // //         "[resourceId('Microsoft.StreamAnalytics/streamingjobs', variables('asaName'))]"
-        // //     ],
-        // //     "properties": {
-        // //         "datasource": {
-        // //             "type": "Microsoft.AzureFunction",
-        // //             "properties": {
-        // //                 "functionAppName": "[variables('funcAppName')]",
-        // //                 "functionName": "UpdateTelemetry"
-        // //             }
-        // //         }
-        // //     }
-        // // },
-        // {
-        //     "type": "Microsoft.Web/sites",
-        //     "apiVersion": "2018-11-01",
-        //     "name": "[variables('funcAppName')]",
-        //     "location": "[variables('location')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Web/serverfarms', variables('funcAppName'))]"
-        //     ],
-        //     "kind": "functionapp",
-        //     "identity": {
-        //         "type": "SystemAssigned"
-        //     },
-        //     "properties": {
-        //         "enabled": true,
-        //         "hostNameSslStates": [
-        //             {
-        //                 "name": "[concat(variables('funcAppName'), '.azurewebsites.net')]",
-        //                 "sslState": "Disabled",
-        //                 "hostType": "Standard"
-        //             },
-        //             {
-        //                 "name": "[concat(variables('funcAppName'), '.scm.azurewebsites.net')]",
-        //                 "sslState": "Disabled",
-        //                 "hostType": "Repository"
-        //             }
-        //         ],
-        //         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('funcAppName'))]",
-        //         "reserved": false,
-        //         "isXenon": false,
-        //         "hyperV": false,
-        //         "siteConfig": {},
-        //         "scmSiteAlsoStopped": false,
-        //         "clientAffinityEnabled": false,
-        //         "clientCertEnabled": false,
-        //         "hostNamesDisabled": false,
-        //         "containerSize": 1536,
-        //         "dailyMemoryTimeQuota": 0,
-        //         "httpsOnly": false,
-        //         "redundancyMode": "None"
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Web/sites/config",
-        //     "apiVersion": "2018-11-01",
-        //     "name": "[concat(variables('funcAppName'), '/web')]",
-        //     "location": "[variables('location')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
-        //     ],
-        //     "properties": {
-        //         "numberOfWorkers": 1,
-        //         "defaultDocuments": [
-        //             "Default.htm",
-        //             "Default.html",
-        //             "Default.asp",
-        //             "index.htm",
-        //             "index.html",
-        //             "iisstart.htm",
-        //             "default.aspx",
-        //             "index.php"
-        //         ],
-        //         "netFrameworkVersion": "v4.0",
-        //         "phpVersion": "5.6",
-        //         "requestTracingEnabled": false,
-        //         "remoteDebuggingEnabled": false,
-        //         "remoteDebuggingVersion": "VS2019",
-        //         "httpLoggingEnabled": false,
-        //         "logsDirectorySizeLimit": 35,
-        //         "detailedErrorLoggingEnabled": false,
-        //         "publishingUsername": "$AsaToAdtWin",
-        //         "azureStorageAccounts": {},
-        //         "scmType": "None",
-        //         "use32BitWorkerProcess": true,
-        //         "webSocketsEnabled": false,
-        //         "alwaysOn": true,
-        //         "managedPipelineMode": "Integrated",
-        //         "virtualApplications": [
-        //             {
-        //                 "virtualPath": "/",
-        //                 "physicalPath": "site\\wwwroot",
-        //                 "preloadEnabled": true
-        //             }
-        //         ],
-        //         "loadBalancing": "LeastRequests",
-        //         "experiments": {
-        //             "rampUpRules": []
-        //         },
-        //         "autoHealEnabled": false,
-        //         "localMySqlEnabled": false,
-        //         "managedServiceIdentityId": 11116,
-        //         "ipSecurityRestrictions": [
-        //             {
-        //                 "ipAddress": "Any",
-        //                 "action": "Allow",
-        //                 "priority": 1,
-        //                 "name": "Allow all",
-        //                 "description": "Allow all access"
-        //             }
-        //         ],
-        //         "scmIpSecurityRestrictions": [
-        //             {
-        //                 "ipAddress": "Any",
-        //                 "action": "Allow",
-        //                 "priority": 1,
-        //                 "name": "Allow all",
-        //                 "description": "Allow all access"
-        //             }
-        //         ],
-        //         "scmIpSecurityRestrictionsUseMain": false,
-        //         "http20Enabled": false,
-        //         "minTlsVersion": "1.2",
-        //         "ftpsState": "AllAllowed",
-        //         "reservedInstanceCount": 0
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Web/sites/deployments",
-        //     "apiVersion": "2018-11-01",
-        //     "name": "[concat(variables('funcAppName'), '/8658c6ba7d4348cc8a901e06d60a038a')]",
-        //     "location": "[variables('location')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
-        //     ],
-        //     "properties": {
-        //         "status": 4,
-        //         "author_email": "N/A",
-        //         "author": "N/A",
-        //         "deployer": "ZipDeploy",
-        //         "message": "Created via a push deployment",
-        //         "start_time": "2021-05-10T21:37:24.557802Z",
-        //         "end_time": "2021-05-10T21:37:35.4497772Z",
-        //         "active": false
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Web/sites/functions",
-        //     "apiVersion": "2018-11-01",
-        //     "name": "[concat(variables('funcAppName'), '/UpdateTelemetry')]",
-        //     "location": "[variables('location')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
-        //     ],
-        //     "properties": {
-        //         "script_root_path_href": "[concat('https://', variables('funcAppName'), '.azurewebsites.net/admin/vfs/site/wwwroot/UpdateTelemetry/')]",
-        //         "script_href": "[concat('https://', variables('funcAppName'), '.azurewebsites.net/admin/vfs/site/wwwroot/bin/AsaToAdtWin.dll')]",
-        //         "config_href": "[concat('https://', variables('funcAppName'), '.azurewebsites.net/admin/vfs/site/wwwroot/UpdateTelemetry/function.json')]",
-        //         "href": "[concat('https://', variables('funcAppName'), '.azurewebsites.net/admin/functions/UpdateTelemetry')]",
-        //         "config": {}
-        //     }
-        // },
-        // {
-        //     "type": "Microsoft.Web/sites/hostNameBindings",
-        //     "apiVersion": "2018-11-01",
-        //     "name": "[concat(variables('funcAppName'), '/', variables('funcAppName'), '.azurewebsites.net')]",
-        //     "location": "[variables('location')]",
-        //     "dependsOn": [
-        //         "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
-        //     ],
-        //     "properties": {
-        //         "siteName": "[variables('funcAppName')]",
-        //         "hostNameType": "Verified"
-        //     }
-        // }
-        ,
+        },
         {
             "type": "Microsoft.Devices/IotHubs",
             "apiVersion": "2021-03-31",
@@ -621,6 +341,105 @@
             "apiVersion": "2020-03-01",
             "name": "[concat(variables('hubName'), '/events/',variables('asaConsumerGroup'))]",
             "dependsOn": [ "[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]" ]
+        },
+        {
+            "type": "Microsoft.DataFactory/factories",
+            "apiVersion": "2018-06-01",
+            "name": "[variables('adfName')]",
+            "location": "[variables('location')]",
+            "properties": {},
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.DataFactory/factories/linkedServices",
+                    "apiVersion": "2018-06-01",
+                    "name": "[concat(variables('adfName'), '/adxiiot')]",
+                    "location": "[variables('location')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.Kusto/Clusters', variables('adxName'))]"
+                    ],
+                    "properties": {
+                        "type": "AzureDataExplorer",
+                        "typeProperties": {
+                            //"endpoint": "[reference(resourceId('Microsoft.Kusto/Clusters', variables('adxName'))).uri]",
+                            "endpoint": "[concat('https://', variables('adxName'),'.', variables('location'), '.kusto.windows.net')]",
+                            "database": "[variables('adxName')]"
+                        }
+                    }
+                },
+                {
+                    "type": "Microsoft.DataFactory/factories/pipelines",
+                    "name": "[concat(variables('adfName'), '/', variables('adfPipelineName'))]",
+                    "apiVersion": "2018-06-01",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.Kusto/Clusters', variables('adxName'))]",
+                        "[resourceId('Microsoft.DigitalTwins/digitalTwinsInstances', variables('adtName'))]",
+                        "[resourceId('Microsoft.DataFactory/factories/linkedServices', variables('adfName'), 'adxiiot')]"
+                    ],
+                    "properties": {
+                        "activities": [
+                            {
+                                "name": "SyncAssetModelCommand",
+                                "type": "AzureDataExplorerCommand",
+                                "dependsOn": [],
+                                "policy": {
+                                    "timeout": "7.00:00:00",
+                                    "retry": 0,
+                                    "retryIntervalInSeconds": 30,
+                                    "secureOutput": false,
+                                    "secureInput": false
+                                },
+                                "userProperties": [],
+                                "typeProperties": {
+                                    "command": "[concat('.set-or-replace AssetModel <|\nevaluate azure_digital_twins_query_request(\"https://', reference(resourceId('Microsoft.DigitalTwins/digitalTwinsInstances', variables('adtName'))).hostName, '\", \"SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = ''''\")\n   | project AssetId=tostring(asset.TagId), \n             DtId=tostring(asset.$dtId), \n             Asset=tostring(asset.Name), \n             AssetName=tostring(asset.AssetName), \n             YearDeployed=tostring(asset.YearDeployed), \n             AssetModel=tostring(asset.AssetModel), \n             Capacity=tostring(asset.Capacity), \n             Unit=tostring(unit.Name), \n             Cell=tostring(cell.Name), \n             Area=tostring(area.Name), \n             Site=tostring(site.Name), \n             Enterprise=tostring(enterprise.Name), \n             asset_data=asset, \n             unit_data=unit, \n             cell_data=cell, \n             area_data=area, \n             site_data=site, \n             enterprise_data=enterprise')]",
+                                    "commandTimeout": "00:20:00"
+                                },
+                                "linkedServiceName": {
+                                    "referenceName": "adxiiot",
+                                    "type": "LinkedServiceReference"
+                                }
+                            }
+                        ],
+                        "annotations": [],
+                        "lastPublishTime": "2021-06-07T13:19:04Z"
+                    }
+                },
+                {
+                    "name": "[concat(variables('adfName'), '/DailyTrigger')]",
+                    "type": "Microsoft.DataFactory/factories/triggers",
+                    "apiVersion": "2018-06-01",
+                    "properties": {
+                        "annotations": [],
+                        "runtimeState": "Stopped",
+                        "pipelines": [
+                            {
+                                "pipelineReference": {
+                                    "referenceName": "[variables('adfPipelineName')]",
+                                    "type": "PipelineReference"
+                                },
+                                "parameters": {}
+                            }
+                        ],
+                        "type": "ScheduleTrigger",
+                        "typeProperties": {
+                            "recurrence": {
+                                "frequency": "Hour",
+                                "interval": 24,
+                                "startTime": "2019-04-11T01:00:00Z",
+                                "timeZone": "UTC"
+                            }
+                        }
+                    },
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.DataFactory/factories/pipelines', variables('adfName'), variables('adfPipelineName'))]"
+                    ]
+                }
+            ]
         }
     ]
 }
