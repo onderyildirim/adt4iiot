@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+function show_help() {
+   echo "Run this script to simulate in Azure: a Purdue Network, PLCs, IoT Edge devices sending data to IoT Hub."
+   echo
+   echo "Syntax: ./install.sh [-flag=value]"
+   echo ""
+   echo "List of optional flags:"
+   echo "-h,--help              Print this help."
+   echo "-s,--subscription      Azure subscription ID to use to deploy resources. Default: use current subscription of Azure CLI."
+   echo "-l,--location          Azure region to deploy resources to. Default: eastus2."
+   echo "-p,--prefix            Prefix used for all new Azure Resource Groups created by this script. Default: first 5 characters of your user id."
+   echo "-v,--vmSize            Size of the Azure VMs to deploy. Default: Standard_B1ms."
+   echo "-k,--ssh-keypath       Path to the SSH public key that should be used to connect to simulator and edge VMs. Default: ~/.ssh/id_rsa.pub"
+   echo "-u,--adminuser         Name of the admin user to be created in simulator and edge VMs. Default: azureuser"
+   echo
+}
+
 location="eastus2"
 adminUserName="azureuser"
 vmSize="Standard_B1ms"
@@ -284,18 +300,3 @@ echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-con
 
 
 
-function show_help() {
-   echo "Run this script to simulate in Azure: a Purdue Network, PLCs, IoT Edge devices sending data to IoT Hub."
-   echo
-   echo "Syntax: ./install.sh [-flag=value]"
-   echo ""
-   echo "List of optional flags:"
-   echo "-h,--help              Print this help."
-   echo "-s,--subscription      Azure subscription ID to use to deploy resources. Default: use current subscription of Azure CLI."
-   echo "-l,--location          Azure region to deploy resources to. Default: eastus2."
-   echo "-p,--prefix            Prefix used for all new Azure Resource Groups created by this script. Default: first 5 characters of your user id."
-   echo "-v,--vmSize            Size of the Azure VMs to deploy. Default: Standard_B1ms."
-   echo "-k,--ssh-keypath       Path to the SSH public key that should be used to connect to simulator and edge VMs. Default: ~/.ssh/id_rsa.pub"
-   echo "-u,--adminuser         Name of the admin user to be created in simulator and edge VMs. Default: azureuser"
-   echo
-}
