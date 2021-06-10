@@ -78,7 +78,27 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 - Run following to deploy Azure Digital Twins for Industrial IoT sample (~15 minutes):
 
     ```bash
-    ./install.sh -rg=<resource_group_prefix> -l=<location> -hubrg=<iothub_resource_group> -hubname=<iothub_name>
+    ./install.sh
+    ```
+    By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "<prefix>-rg". You may also give any prefix you want from the command line parameters 
+    ```bash
+    ./install.sh prefix=adt4iiot
+    ```
+    The full syntax for install.sh is below
+    ```bash
+    Syntax: ./install.sh [-flag=value]
+
+    List of optional flags:
+    -h,--help              Print this help.
+    -s,--subscription      Azure subscription ID to use to deploy resources. 
+                               Default: use current subscription of Azure CLI.
+    -l,--location          Azure region to deploy resources to. Default: eastus2.
+    -p,--prefix            Prefix used for all new Azure Resource Groups created by this script. 
+                               Default: first 5 characters of your user id.
+    -v,--vmSize            Size of the Azure VMs to deploy. Default: Standard_B1ms.
+    -k,--ssh-keypath       Path to the SSH public key that should be used to connect to simulator and edge VMs. 
+                               Default: ~/.ssh/id_rsa.pub
+    -u,--adminuser         Name of the admin user to be created in simulator and edge VMs. Default: azureuser
     ```
 - Save the command given at the end of the script. It should be similar to below. If you forget to save the command or lose it, you can find it 
     ```bash

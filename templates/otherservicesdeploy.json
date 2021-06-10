@@ -2,23 +2,52 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "prefix": {
-            "defaultValue": "adt4iiot",
+        "adtName": {
+            "type": "String"
+        },
+        "adxName": {
+            "type": "String"
+        },
+        "adxDbName": {
+            "type": "String"
+        },
+        "funcAppName": {
+            "type": "String"
+        },
+        "funcName": {
+            "type": "String"
+        },
+        "adfName": {
+            "type": "String"
+        },
+        "adfPipelineName": {
+            "type": "String"
+        },
+        "asaName": {
+            "type": "String"
+        },
+        "hubName": {
+            "type": "String"
+        },
+        "asaConsumerGroup": {
+            "type": "String"
+        },
+        "adxConsumerGroup": {
             "type": "String"
         }
     },
     "variables": {
-        "adtName": "[concat(parameters('prefix'),'-assets')]",
-        "adxName": "[concat(parameters('prefix'),'adx')]", //cluster name allows numbers and lower case letters only
-        "adxDbName": "iiotdb",
-        "funcAppName": "[concat(parameters('prefix'),'-asa2adt')]",
-        "funcName": "UpdateTelemetry",
-        "adfName": "[concat(parameters('prefix'),'-syncassets')]",
-        "adfPipelineName": "SyncAssetModel",
-        "asaName": "[concat(parameters('prefix'),'-hub2adt')]",
-        "hubName": "[concat(parameters('prefix'),'-hub')]",
-        "asaConsumerGroup": "asaconsumer",
-        "adxConsumerGroup": "adxconsumer",
+        "adtName": "[parameters('adtName')]",
+        "adxName": "[parameters('adxName')]",
+        "adxDbName": "[parameters('adxDbName')]",
+        "funcAppName": "[parameters('funcAppName')]",
+        "funcName": "[parameters('funcName')]",
+        "adfName": "[parameters('adfName')]",
+        "adfPipelineName": "[parameters('adfPipelineName')]",
+        "asaName": "[parameters('asaName')]",
+        "hubName": "[parameters('hubName')]",
+        "asaConsumerGroup": "[parameters('asaConsumerGroup')]",
+        "adxConsumerGroup": "[parameters('adxConsumerGroup')]",
         "location": "[resourceGroup().location]"
     },
     "resources": [

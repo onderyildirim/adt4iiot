@@ -117,7 +117,6 @@ echo "location=$location"
 echo "adminUserName=$adminUserName"
 echo "adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
 echo "vmSize=$vmSize"
-echo "subscription=$subscription"
 
 if [ ! -z $subscription ]; then
   az account set --subscription $subscription
@@ -130,10 +129,10 @@ echo "Deploying to Azure Subscription: ${subscriptionName} (${subscription})"
 
 if ( $(az group exists -n "$rg") )
 then
-  echo "Resource group $rg already exists."
+  echo "Resource group '$rg' already exists."
 else
   az group create --name "$rg" --location "$location" --tags "$prefix" "CreationDate"=$(date --utc +%Y%m%d_%H%M%SZ)  1> /dev/null
-  echo "Create resource group $rg"
+  echo "Create resource group: $rg"
 fi
 
 networkDeploymentFilePath="templates/networkdeploy.json"
@@ -150,7 +149,7 @@ configContainerName="${prefix}-config"
 funcAppName="${prefix}asa2adt"
 mapFileName="assetid2dtid.csv"
 
-echo "Deploying function app"
+echo "Deploying function app: $funcAppName"
 functionDeploymentOutput=($(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
 storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" ))
 
