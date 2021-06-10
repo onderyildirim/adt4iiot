@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 location="eastus2"
-prefix="adt4iiot"
 adminUserName="azureuser"
 vmSize="Standard_B1ms"
 adminUserSshPublicKeyPath="$(readlink -f ~/.ssh/id_rsa.pub)"
@@ -74,17 +73,16 @@ while (( "$#" )); do
   esac
 done
 
+if [ ! -z $prefix ]; then
+  currentUser=az account show --query user.name --output tsv
+  prefix=${currentUser:0:5}
+  prefix=${prefix//[^[:alnum:]]/}
+fi
+
 if [ ${#prefix} -gt 10 ]; then
   echo "prefix length should be less than 10 chars. prefix=$prefix"
   exit
 fi
-
-echo "location=$location"
-echo "prefix=$prefix"
-echo "adminUserName=$adminUserName"
-echo "adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
-echo "vmSize=$vmSize"
-echo "subscription=$subscription"
 
 rg="$prefix-rg"
 networkName="$prefix-network"
@@ -92,6 +90,12 @@ adminUserSshPublicKey=$(cat $adminUserSshPublicKeyPath)
 
 
 echo "rg=$rg"
+echo "location=$location"
+echo "prefix=$prefix"
+echo "adminUserName=$adminUserName"
+echo "adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
+echo "vmSize=$vmSize"
+echo "subscription=$subscription"
 
 if [ ! -z $subscription ]; then
   az account set --subscription $subscription
@@ -111,9 +115,79 @@ else
 fi
 
 networkDeploymentFilePath="templates/networkdeploy.json"
-edgeVMDeploymentFilePath="templates/iotedgedeploy.json"
-simVMDeploymentFilePath="templates/opcsimdeploy.json"
+#edgeVMDeploymentFilePath="templates/iotedgedeploy.json"
+#simVMDeploymentFilePath="templates/opcsimdeploy.json"
 vmDeploymentFilePath="templates/vmdeploy.json"
+functionDeploymentFilePath="templates/functiondeploy.json"
+otherServicesDeploymentFilePath="templates/otherservicesdeploy.json"
+
+
+
+storageName="${prefix}storage" #storage name allows numbers and lower case letters only
+configContainerName="${prefix}-config"
+funcAppName="${prefix}-asa2adt"
+mapFileName="assetid2dtid.csv"
+
+echo "Deploying function app"
+functionDeploymentOutput=$(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
+storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" )
+
+
+adtName="${prefix}-assets"
+adxName="${prefix}adx" #cluster name allows numbers and lower case letters only
+adxDbName="iiotdb"
+funcName="UpdateTelemetry"
+adfName="${prefix}-syncassets"
+adfPipelineName="SyncAssetModel"
+asaName="${prefix}-hub2adt"
+hubName="${prefix}-hub"
+asaConsumerGroup="asaconsumer"
+adxConsumerGroup="adxconsumer"
+edgeDeviceId="edge1"
+
+echo "Deploying rest of platform services: ADT, ASA, ADF, ADX, IoT Hub"
+otherServicesDeploymentOutput=$(az deployment group create --name OtherServicesDeployment --resource-group "$rg" --template-file "$otherServicesDeploymentFilePath" --parameters \
+adtName="$adtName" adxName="$adxName" adxDbName="$adxDbName" funcAppName="$funcAppName" funcName="$funcName" adfName="$adfName" adfPipelineName="$adfPipelineName" \
+asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup")
+
+
+echo "Getting managed identity of ADF"
+$adfprincipalid=az datafactory factory show --resource-group $rg --factory-name $adfName --query identity.principalId -o tsv
+$adftenantid=az datafactory factory show --resource-group $rg --factory-name $adfName --query identity.tenantId -o tsv
+$adfappid=az ad sp show --id $adfprincipalid --query appId -o tsv
+
+echo "Getting managed identity of Azure Function"
+$funcprincipalid = $(az functionapp identity assign -g $rg -n $funcAppName --query principalId)
+
+echo "Assigning roles in ADT: $currentUser"
+az dt role-assignment create --dt-name $adtName --assignee $currentUser     --role "Azure Digital Twins Data Owner"
+echo "Assigning roles in ADT: $adfName (ADF)"
+az dt role-assignment create --dt-name $adtName --assignee $adfprincipalID  --role "Azure Digital Twins Data Owner"
+echo "Assigning roles in ADT: $funcAppName (Azure Function)"
+az dt role-assignment create --dt-name $adtName --assignee $funcprincipalid --role "Azure Digital Twins Data Owner"
+
+adtRoleAssignmentsGrantedAt=$(date) #get the timestamp below we will wait for 5 mins at least for these settings to propogate
+
+
+echo "Granting access to current user in ADX cluster"
+az kusto cluster-principal-assignment create --cluster-name $adxName --principal-id $currentUser --principal-type "User" --role "AllDatabasesAdmin" --principal-assignment-name "kustoprincipal1" --resource-group $rg
+
+echo "Granting access to ADF in ADX database"
+az kusto database add-principal --cluster-name $adxName --resource-group $rg --database-name $adxDbName --value name=$adfName app-id=$adfappid type="App" role="Admin"
+
+echo "Setting adt service url setting for Azure Function"
+$adthostname = "https://" + $(az dt show -n $adtName --query 'hostName' -o tsv)
+az functionapp config appsettings set -g $rg -n $funcAppName --settings "ADT_SERVICE_URL=$adthostname"
+
+echo "Copying map file to storage container"
+tomorrow=$(date --date "tomorrow" +%Y-%m-%d)
+storageConnStr=$(az storage account show-connection-string --name $storageName --resource-group $rg  --query connectionString --output tsv)
+storageSasToken=$(az storage container generate-sas --connection-string $storageConnStr --name $configContainerName --permissions acdlrw --expiry $tomorrow)
+az storage blob upload --connection-string $storageConnStr --container-name $configContainerName --name $mapFileName --file "assetmodel/$mapFileName" --sas-token $storageSasToken
+
+
+az iot hub device-identity create --hub-name $hubName --device-id $edgeDeviceId  --edge-enabled --output none
+edgeDeviceConnectionString=$(az iot hub device-identity connection-string show --device-id $edgeDeviceId --hub-name $hubName  --resource-group $rg --query 'connectionString' -o tsv)
 
 
 if [ ! -z  $(az network vnet list --resource-group "$rg" --query "[?name=='$networkName'].id" --output tsv) ] 
@@ -143,17 +217,17 @@ then
 else
   simVMDeploymentOutput=$(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
   vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
-  --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
+  --query "properties.outputs.[vmMachineName.value, vmMachineFqdn.value, vmAdminUserName.value, PublicSSH.value]" -o tsv) 
 
   vmMachineName=${simVMDeploymentOutput[0]}
-  vmMachinePrivateIP=${simVMDeploymentOutput[1]}
-  vmMachineFqdn=${simVMDeploymentOutput[2]}
-  vmAdminUserName=${simVMDeploymentOutput[3]}
+  vmMachineFqdn=${simVMDeploymentOutput[1]}
+  vmAdminUserName=${simVMDeploymentOutput[2]}
+  vmSSH=${simVMDeploymentOutput[3]}
 
-  echo "VM Name:       $vmMachineName"
-  echo "VM Private IP: $vmMachinePrivateIP"
-  echo "VM Fqdn:       $vmMachineFqdn"
-  echo "VM Admin:      $vmAdminUserName"
+  echo "VM Name :       $vmMachineName"
+  echo "VM Fqdn :       $vmMachineFqdn"
+  echo "VM Admin:       $vmAdminUserName"
+  echo "VM SSH  :       $vmSSH"
   echo "======================================"
 fi
 
@@ -166,20 +240,37 @@ then
   echo "VM $edgeVMMachineName already exists."
 else
   edgeVMDeploymentOutput=$(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
-  vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
-  --query "properties.outputs.[vmMachineName.value, vmMachinePrivateIP.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv) 
+  vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" edgeDeviceConnectionString="$edgeDeviceConnectionString" \
+  --query "properties.outputs.[vmMachineName.value, vmMachineFqdn.value, vmAdminUserName.value, PublicSSH.value]" -o tsv) 
 
   vmMachineName=${edgeVMDeploymentOutput[0]}
-  vmMachinePrivateIP=${edgeVMDeploymentOutput[1]}
-  vmMachineFqdn=${edgeVMDeploymentOutput[2]}
-  vmAdminUserName=${edgeVMDeploymentOutput[3]}
+  vmMachineFqdn=${edgeVMDeploymentOutput[1]}
+  vmAdminUserName=${edgeVMDeploymentOutput[2]}
+  vmSSH=${edgeVMDeploymentOutput[3]}
 
-  echo "VM Name:       $vmMachineName"
-  echo "VM Private IP: $vmMachinePrivateIP"
-  echo "VM Fqdn:       $vmMachineFqdn"
-  echo "VM Admin:      $vmAdminUserName"
+  echo "VM Name :       $vmMachineName"
+  echo "VM Fqdn :       $vmMachineFqdn"
+  echo "VM Admin:       $vmAdminUserName"
+  echo "VM SSH  :       $vmSSH"
   echo "======================================"
 fi
+
+
+
+az iot edge set-modules --device-id $edgeDeviceId --hub-name $hubName --content "templates\edgeDeploymentManifest.json" --output none
+
+hubresourceid=$(az iot hub show --name $hubName --resource-group $rg --query "id" --output tsv)
+
+az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup \
+--data-format JSON --iot-hub-resource-id $hubresourceid --location $location --event-system-properties "iothub-connection-device-id" --mapping-rule-name "iiot_raw_mapping" \
+--shared-access-policy-name "iothubowner" --table-name "iiot_raw"
+
+
+remainingSeconds=$(( 600-$(( $(date +%s)-$(date +%s -d "$adtRoleAssignmentsGrantedAt") )) ))
+echo "Waiting for $remainingSeconds seconds for security settings to propogate"
+sleep remainingSeconds
+
+az dt model create --dt-name $adtName --resource-group $rg --models "assetmodel\assetmodel.json"
 
 
 function script_usage() {

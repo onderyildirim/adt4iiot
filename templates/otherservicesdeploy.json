@@ -1,0 +1,269 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "prefix": {
+            "defaultValue": "adt4iiot",
+            "type": "String"
+        }
+    },
+    "variables": {
+        "adtName": "[concat(parameters('prefix'),'-assets')]",
+        "adxName": "[concat(parameters('prefix'),'adx')]", //cluster name allows numbers and lower case letters only
+        "adxDbName": "iiotdb",
+        "funcAppName": "[concat(parameters('prefix'),'-asa2adt')]",
+        "funcName": "UpdateTelemetry",
+        "adfName": "[concat(parameters('prefix'),'-syncassets')]",
+        "adfPipelineName": "SyncAssetModel",
+        "asaName": "[concat(parameters('prefix'),'-hub2adt')]",
+        "hubName": "[concat(parameters('prefix'),'-hub')]",
+        "asaConsumerGroup": "asaconsumer",
+        "adxConsumerGroup": "adxconsumer",
+        "location": "[resourceGroup().location]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.DigitalTwins/digitalTwinsInstances",
+            "apiVersion": "2020-12-01",
+            "name": "[variables('adtName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "privateEndpointConnections": [],
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Kusto/Clusters",
+            "apiVersion": "2020-09-18",
+            "name": "[variables('adxName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Dev(No SLA)_Standard_E2a_v4",
+                "tier": "Basic",
+                "capacity": 1
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "trustedExternalTenants": [],
+                "enableDiskEncryption": false,
+                "enableStreamingIngest": false,
+                "enablePurge": false,
+                "enableDoubleEncryption": false,
+                "engineType": "V3"
+            }
+        },
+        {
+            "name": "[concat(variables('adxName'), '/', variables('adxDbName'))]",
+            "type": "Microsoft.Kusto/clusters/databases",
+            "apiVersion": "2020-06-14",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Kusto/clusters', variables('adxName'))]"
+            ],
+            "properties": {
+                "softDeletePeriodInDays": 365,
+                "hotCachePeriodInDays": 31
+            }
+        },
+        {
+            "type": "Microsoft.StreamAnalytics/streamingjobs",
+            "apiVersion": "2017-04-01-preview",
+            "name": "[variables('asaName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "sku": {
+                    "name": "Standard"
+                },
+                "dataLocale": "en-US",
+                "compatibilityLevel": "1.2",
+                "contentStoragePolicy": "SystemAccount",
+                "jobType": "Cloud",
+                "inputs": [
+                    {
+                        "name": "[variables('hubName')]",
+                        "dependsOn": [
+                            "[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]"
+                        ],
+                        "properties": {
+                            "type": "stream",
+                            "serialization": {
+                                "type": "JSON",
+                                "properties": {
+                                    "encoding": "UTF8",
+                                    "format": "Array"
+                                }
+                            },
+                            "datasource": {
+                                "type": "Microsoft.Devices/IotHubs",
+                                "properties": {
+                                    "iotHubNamespace": "[variables('hubName')]",
+                                    "sharedAccessPolicyName": "iothubowner",
+                                    "sharedAccessPolicyKey": "[listKeys(resourceId('Microsoft.Devices/IotHubs/Iothubkeys', variables('hubName'), 'iothubowner'), '2016-02-03').primaryKey]",
+                                    "consumerGroupName": "[variables('asaConsumerGroup')]",
+                                    "endpoint": "messages/events"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "transformation": {
+                    "name": "Transformation",
+                    "properties": {
+                        "streamingUnits": 1,
+                        "query": "[concat('WITH LastInWindow AS (\r\n     SELECT\r\n          TagId, MAX([Timestamp]) AS LastEventTime\r\n     FROM\r\n          ', variables('hubName'), ' TIMESTAMP BY [Timestamp]\r\n     GROUP BY\r\n          TagId, TumblingWindow(second, 60) )\r\n SELECT\r\n      hub.TagId,\r\n     hub.[Timestamp],\r\n     hub.Value\r\n INTO ', variables('funcAppName'), ' \r\n FROM\r\n     ', variables('hubName'), ' as hub TIMESTAMP BY [Timestamp]\r\n      INNER JOIN LastInWindow\r\n     ON DATEDIFF(second, hub, LastInWindow) BETWEEN 0 AND 60\r\n     AND hub.[Timestamp] = LastInWindow.LastEventTime\r\n     AND hub.TagId = LastInWindow.TagId')]"
+                    }
+                },
+                "outputs": [
+                    {
+                        "name": "[variables('funcAppName')]",
+                        "dependsOn": [
+                            "[resourceId('Microsoft.Web/sites', variables('funcAppName'))]"
+                            //,"[resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName'))]"
+                        ],
+                        "properties": {
+                            "serialization": {
+                                "type": "Json",
+                                "properties": {
+                                    "encoding": "UTF8",
+                                    "format": "Array"
+                                }
+                            },
+                            "datasource": {
+                                "type": "Microsoft.AzureFunction",
+                                "properties": {
+                                    "functionAppName": "[variables('funcAppName')]",
+                                    "functionName": "[variables('funcName')]",
+                                    "apiKey": "[listsecrets(resourceId('Microsoft.Web/sites/functions', variables('funcAppName'), variables('funcName')),'2015-08-01').key]"
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Devices/IotHubs",
+            "apiVersion": "2021-03-31",
+            "name": "[variables('hubName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "S1",
+                "tier": "Standard",
+                "capacity": 1
+            }
+        },
+        {
+            "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+            "apiVersion": "2020-03-01",
+            "name": "[concat(variables('hubName'), '/events/',variables('adxConsumerGroup'))]",
+            "dependsOn": [ "[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]" ]
+        },
+        {
+            "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+            "apiVersion": "2020-03-01",
+            "name": "[concat(variables('hubName'), '/events/',variables('asaConsumerGroup'))]",
+            "dependsOn": [ "[resourceId('Microsoft.Devices/IotHubs', variables('hubName'))]" ]
+        },
+        {
+            "type": "Microsoft.DataFactory/factories",
+            "apiVersion": "2018-06-01",
+            "name": "[variables('adfName')]",
+            "location": "[variables('location')]",
+            "properties": {},
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.DataFactory/factories/linkedServices",
+                    "apiVersion": "2018-06-01",
+                    "name": "[concat(variables('adfName'), '/adxiiot')]",
+                    "location": "[variables('location')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.Kusto/Clusters', variables('adxName'))]"
+                    ],
+                    "properties": {
+                        "type": "AzureDataExplorer",
+                        "typeProperties": {
+                            //"endpoint": "[reference(resourceId('Microsoft.Kusto/Clusters', variables('adxName'))).uri]",
+                            "endpoint": "[concat('https://', variables('adxName'),'.', variables('location'), '.kusto.windows.net')]",
+                            "database": "[variables('adxName')]"
+                        }
+                    }
+                },
+                {
+                    "type": "Microsoft.DataFactory/factories/pipelines",
+                    "name": "[concat(variables('adfName'), '/', variables('adfPipelineName'))]",
+                    "apiVersion": "2018-06-01",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.Kusto/Clusters', variables('adxName'))]",
+                        "[resourceId('Microsoft.DigitalTwins/digitalTwinsInstances', variables('adtName'))]",
+                        "[resourceId('Microsoft.DataFactory/factories/linkedServices', variables('adfName'), 'adxiiot')]"
+                    ],
+                    "properties": {
+                        "activities": [
+                            {
+                                "name": "SyncAssetModelCommand",
+                                "type": "AzureDataExplorerCommand",
+                                "dependsOn": [],
+                                "policy": {
+                                    "timeout": "7.00:00:00",
+                                    "retry": 0,
+                                    "retryIntervalInSeconds": 30,
+                                    "secureOutput": false,
+                                    "secureInput": false
+                                },
+                                "userProperties": [],
+                                "typeProperties": {
+                                    "command": "[concat('.set-or-replace AssetModel <|\nevaluate azure_digital_twins_query_request(\"https://', reference(resourceId('Microsoft.DigitalTwins/digitalTwinsInstances', variables('adtName'))).hostName, '\", \"SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = ''contoso''\")\n   | project AssetId=tostring(asset.TagId), \n             DtId=tostring(asset.$dtId), \n             Asset=tostring(asset.Name), \n             AssetName=tostring(asset.AssetName), \n             YearDeployed=tostring(asset.YearDeployed), \n             AssetModel=tostring(asset.AssetModel), \n             Capacity=tostring(asset.Capacity), \n             Unit=tostring(unit.Name), \n             Cell=tostring(cell.Name), \n             Area=tostring(area.Name), \n             Site=tostring(site.Name), \n             Enterprise=tostring(enterprise.Name), \n             asset_data=asset, \n             unit_data=unit, \n             cell_data=cell, \n             area_data=area, \n             site_data=site, \n             enterprise_data=enterprise')]",
+                                    "commandTimeout": "00:20:00"
+                                },
+                                "linkedServiceName": {
+                                    "referenceName": "adxiiot",
+                                    "type": "LinkedServiceReference"
+                                }
+                            }
+                        ],
+                        "annotations": [],
+                        "lastPublishTime": "2021-06-07T13:19:04Z"
+                    }
+                },
+                {
+                    "name": "[concat(variables('adfName'), '/DailyTrigger')]",
+                    "type": "Microsoft.DataFactory/factories/triggers",
+                    "apiVersion": "2018-06-01",
+                    "properties": {
+                        "annotations": [],
+                        "runtimeState": "Stopped",
+                        "pipelines": [
+                            {
+                                "pipelineReference": {
+                                    "referenceName": "[variables('adfPipelineName')]",
+                                    "type": "PipelineReference"
+                                },
+                                "parameters": {}
+                            }
+                        ],
+                        "type": "ScheduleTrigger",
+                        "typeProperties": {
+                            "recurrence": {
+                                "frequency": "Hour",
+                                "interval": 24,
+                                "startTime": "2019-04-11T01:00:00Z",
+                                "timeZone": "UTC"
+                            }
+                        }
+                    },
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DataFactory/factories', variables('adfName'))]",
+                        "[resourceId('Microsoft.DataFactory/factories/pipelines', variables('adfName'), variables('adfPipelineName'))]"
+                    ]
+                }
+            ]
+        }
+    ]
+}
