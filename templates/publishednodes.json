@@ -1,6 +1,6 @@
 [
   {
-    "EndpointUrl": "opc.tcp://iiotdemosimulator:54845/OPCUA/Site1",
+    "EndpointUrl": "opc.tcp://10.2.0.4:54845/OPCUA/Site1",
     "OpcNodes": [
       {
         "Id": "ns=1;s=STATUS",
@@ -23,7 +23,7 @@
     ]
   },
   {
-    "EndpointUrl": "opc.tcp://iiotdemosimulator:54855/OPCUA/Site2",
+    "EndpointUrl": "opc.tcp://10.2.0.4:54855/OPCUA/Site2",
     "OpcNodes": [
       {
         "Id": "ns=1;s=STATUS",

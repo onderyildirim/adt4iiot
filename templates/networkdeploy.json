@@ -14,7 +14,9 @@
     "nsgName": "[concat(parameters('networkName'), '-nsg')]",
     "PortSsh": "22",
     "PortRdp": "3389",
-    "PortNodered": "1880"
+    "PortNodered": "1880",
+    "PortOPCServer1": "54845",
+    "PortOPCServer2": "54855"
     
   },
   "resources": [
@@ -56,6 +58,20 @@
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 200,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Allow_OPC_From_Internal_Network",
+            "properties": {
+              "description": "Allow OPCUA connections from internal network",
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRanges": [ "[variables('PortOPCServer1')]", "[variables('PortOPCServer2')]" ],
+              "sourceAddressPrefix": "10.2.0.0/24",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
               "direction": "Inbound"
             }
           },
