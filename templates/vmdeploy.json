@@ -144,10 +144,6 @@
     "vmAdminUserName": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmMachineName'))).osProfile.adminUsername]"
-    },
-    "PublicSSH": {
-      "type": "string",
-      "value": "[concat('SSH : ssh ', reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmMachineName'))).osProfile.adminUsername, '@', reference(resourceId('Microsoft.Network/publicIPAddresses', variables('pipName'))).dnsSettings.fqdn)]"
     }    
   }
 }

@@ -76,15 +76,5 @@
         ]
       }
     }
-  ],
-  "outputs": {
-    "resourceGroup": {
-      "type": "string",
-      "value": "[resourceGroup().name]"
-    },
-    "virtualNetwork": {
-      "type": "string",
-      "value": "[parameters('networkName')]"
-    }
-  }
+  ]
 }

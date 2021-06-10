@@ -1,0 +1,48 @@
+[
+  {
+    "EndpointUrl": "opc.tcp://iiotdemosimulator:54845/OPCUA/Site1",
+    "OpcNodes": [
+      {
+        "Id": "ns=1;s=STATUS",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "CA/Line1/A1.STATUS"
+      },
+      {
+        "Id": "ns=1;s=ITEM_COUNT_GOOD",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "CA/Line1/A1.ITEM_COUNT_GOOD"
+      },
+      {
+        "Id": "ns=1;s=ITEM_COUNT_BAD",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "CA/Line1/A1.ITEM_COUNT_BAD"
+      }
+    ]
+  },
+  {
+    "EndpointUrl": "opc.tcp://iiotdemosimulator:54855/OPCUA/Site2",
+    "OpcNodes": [
+      {
+        "Id": "ns=1;s=STATUS",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "FR/Line2/A3.STATUS"
+      },
+      {
+        "Id": "ns=1;s=ITEM_COUNT_GOOD",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "FR/Line2/A3.ITEM_COUNT_GOOD"
+      },
+      {
+        "Id": "ns=1;s=ITEM_COUNT_BAD",
+        "OpcSamplingInterval": 1000,
+        "OpcPublishingInterval": 5000,
+        "DisplayName": "FR/Line2/A3.ITEM_COUNT_BAD"
+      }
+    ]
+  }
+]
