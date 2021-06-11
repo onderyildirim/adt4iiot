@@ -13,7 +13,7 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 
 - An **Azure account with a valid subscription**. When using the default simulation configuration, 7 Virtual Machines (VMs) and 1 Virtual Network (VNet) will be deployed in your subscription for a daily cost of **$XXX**. For more details, see this [Azure Pricing Estimate](https://azure.com/e/4df47d47440b43e78076078496e2c3d1).
 
-- **[Azure CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) with the `azure-iot` CLI extension 0.10.6 or above** installed. We'll use a bash terminal from the [Azure Cloud Shell](https://docs.microsoft.com/en-us/azure/cloud-shell/overview) during install for which only a browser is needed.
+- **[Azure CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) with CLI extensions below** installed. We'll use a bash terminal from the [Azure Cloud Shell](https://docs.microsoft.com/en-us/azure/cloud-shell/overview) during install for which only a browser is needed.
 
   1. Open the [Azure Cloud Shell](https://shell.azure.com/) from your browser
 
@@ -22,14 +22,14 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
   3. Azure CLI extensions
      - Verify if required extensions is already installed with at least versions below:
      
-       ```bash
+       ```CLI
       azure-iot    0.10.13
       datafactory  0.3.0
       kusto        0.3.0
        ```
 
      - Run followıng to get versions
-       ```bash
+       ```CLI
        az --version
        ```
 
@@ -53,7 +53,7 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 
 ### Prepare source code
 
-First we need to prepare the environment where we will run the script.
+First we need to prepare the environment.
 
 From the [Azure Cloud Shell](https://shell.azure.com/):
 
@@ -81,7 +81,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     ```bash
     ./install.sh
     ```
-    By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "<prefix>-rg". You may also give any prefix you want from the command line parameters 
+    By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "(prefix)-rg". You may also give any prefix you want from the command line parameters 
     ```bash
     ./install.sh prefix=adt4iiot
     ```
@@ -109,7 +109,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 
 ### Post install configuration
 #### Create Data Explorer schema
-- After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
+- After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "(prefix)adx" 
 - Select "Query" in the left blade
 - Make sure "iiotdb" database is selected on the left
 - Run following Data Explorer script in query window to create database schema
@@ -151,7 +151,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 
 #### [Optional] Activate Azure Data Factory trigger
 Install script creates a trigger for data factory pipeline to transfer data from ADT into ADX. The trigger however is left disabled. If you would like it to run periodically, follow steps below 
-- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Go to Azure Data Factory instance (named (prefix)-syncassets) in Azure Portal
 - Click on "Author & Monitor"
 - Click on "Manage" on the toolbat at the left
 - Click on "Triggers" under "Author"
@@ -161,7 +161,7 @@ Install script creates a trigger for data factory pipeline to transfer data from
 
 #### [Optional] Set root twin id in Azure Data Factory
 When we query data from Azure Digital Twins graph we need to set the root twin. If you imported the default `twingraph.xlsx` file, the root entity is the twin id `contoso`. If you would like to import your own twin structure, also remember to modify root object in query within the ADF pipeline: 
-- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Go to Azure Data Factory instance (named (prefix)-syncassets) in Azure Portal
 - Click on "Author & Monitor"
 - Click on "Author" on the toolbat at the left
 - Click on "SyncAssetModel" under "Pipeline"
