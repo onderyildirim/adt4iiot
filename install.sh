@@ -17,6 +17,7 @@ function show_help() {
    echo
 }
 
+echo "Script started at: $(date)"
 scriptStartedAt=$(date) 
 location="eastus2"
 adminUserName="azureuser"
@@ -196,13 +197,13 @@ else
 fi
 
 echo "Deploying function app: $funcAppName"
-functionDeploymentOutput=($(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
-storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" ))
+az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
+storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName"
 
 echo "Deploying rest of platform services: ADT, ASA, ADF, ADX, IoT Hub"
-otherServicesDeploymentOutput=($(az deployment group create --name OtherServicesDeployment --resource-group "$rg" --template-file "$otherServicesDeploymentFilePath" --parameters \
+az deployment group create --name PaaSServicesDeployment --resource-group "$rg" --template-file "$otherServicesDeploymentFilePath" --parameters \
 adtName="$adtName" adxName="$adxName" adxDbName="$adxDbName" funcAppName="$funcAppName" funcName="$funcName" adfName="$adfName" adfPipelineName="$adfPipelineName" \
-asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup"))
+asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup"
 
 echo "Starting ASA job: $asaName"
 az stream-analytics job start --resource-group $rg --name $asaName
@@ -222,7 +223,7 @@ az dt role-assignment create --dt-name $adtName --assignee $adfprincipalid  --ro
 echo "Assigning roles in ADT: $funcAppName (Azure Function)"
 az dt role-assignment create --dt-name $adtName --assignee $funcprincipalid --role "Azure Digital Twins Data Owner" --output none
 
-echo "Get the timestamp. We will wait for 10 mins at least for these settings to propogate to ADT."
+echo "Get the timestamp. We will wait for at least 10 mins for access grants to propogate."
 adtRoleAssignmentsGrantedAt=$(date) 
 
 echo "Granting access to current user in ADX cluster"
@@ -255,11 +256,9 @@ if [ ! -z  $(az network vnet list --resource-group "$rg" --query "[?name=='$netw
 then
   echo "Network $networkName already exists."
 else
+  echo "Creating network $networkName"
   networkDeploymentOutput=$(az deployment group create --name NetworkDeployment --resource-group "$rg" --template-file "$networkDeploymentFilePath" --parameters \
   networkName="$networkName" ) 
-
-  echo "Created network $networkName."
-  echo "======================================"
 fi
 
 simVMMachineName="$prefix-simvm"
@@ -268,7 +267,8 @@ if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$simVMMachineNa
 then
   echo "VM $simVMMachineName already exists."
 else
-  simVMDeploymentOutput=($(az deployment group create --name SimVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
+  echo "Creating virtual machine $simVMMachineName"
+  simVMDeploymentOutput=($(az deployment group create --name SimulatorVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
   vmType="simulator" vmMachineName="$simVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" \
   --query "properties.outputs.[vmMachineName.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv)) 
 
@@ -291,6 +291,7 @@ if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$edgeVMMachineN
 then
   echo "VM $edgeVMMachineName already exists."
 else
+  echo "Creating virtual machine $edgeVMMachineName"
   edgeVMDeploymentOutput=($(az deployment group create --name EdgeVMDeployment --resource-group "$rg" --template-file "$vmDeploymentFilePath" --parameters \
   vmType="edge" vmMachineName="$edgeVMMachineName" networkName="$networkName" adminUserName="$adminUserName" adminUserSshPublicKey="$adminUserSshPublicKey" vmSize="$vmSize" edgeDeviceConnectionString="$edgeDeviceConnectionString" \
   --query "properties.outputs.[vmMachineName.value, vmMachineFqdn.value, vmAdminUserName.value]" -o tsv)) 
@@ -305,7 +306,7 @@ else
     echo "Edge VM Admin: $vmAdminUserName"
   fi
 
-  echo "Edge VM SSH  : ssh ${vmAdminUserName}@${vmMachineFqdn}"
+  echo "Edge VM SSH       : ssh ${vmAdminUserName}@${vmMachineFqdn}"
 fi
 
 deploymentManifestTemplateFile="templates/edgeDeploymentManifest.json"
@@ -324,26 +325,26 @@ do
    sleep 1
    sc=$[$sc+1]
 done
-echo "Continuing..."
+echo "                                                \r"
 
 adtModelDefinitionsFile="assetmodel/assetmodel.json"
 echo "Uploading ADT model from file '$adtModelDefinitionsFile'"
 az dt model create --dt-name $adtName --resource-group $rg --models $adtModelDefinitionsFile --output none
 
+echo ""
 echo "======================================"
+echo ""
 echo "Below commands help you to stop compute resources and minimize consumption"
 echo "when you dont use the solution and start them again when you need to use them. "
 echo ""
-echo "Commands to start compute resources."
+echo "# Commands to start compute resources."
 echo "az kusto cluster start --resource-group $rg --name $adxName --no-wait"
 echo "az vm start --resource-group $rg  -n $edgeVMMachineName"
 echo "az vm start --resource-group $rg  -n $simVMMachineName"
 echo "az stream-analytics job start --resource-group $rg --name $asaName"
 echo "az functionapp start --resource-group $rg --name $funcAppName"
 echo ""
-echo "======================================"
-echo ""
-echo "Commands to stop compute resources"
+echo "# Commands to stop compute resources"
 echo "az kusto cluster stop --resource-group $rg --name $adxName --no-wait"
 echo "az vm deallocate --resource-group $rg  -n $edgeVMMachineName"
 echo "az vm deallocate --resource-group $rg  -n $simVMMachineName"
@@ -353,8 +354,9 @@ echo ""
 echo "======================================"
 echo ""
 echo ""
+echo "Script completed at: $(date)"
 scriptDurationInSecs=$(( $(date +%s)-$(date +%s -d "$scriptStartedAt") ))
-echo "Script finished in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
+echo "Script completed in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
 echo ""
 echo ""
 echo "At this point, ADX database structure has to be created before initiating data ingestion. "
@@ -364,10 +366,10 @@ echo "Goto ADX resource in Azure portal now and execute commands as described in
 echo ""
 echo "After you complete 'Post install configuration' step, return here and run following commands from this window"
 echo ""
-echo "=== Command 1: Create data ingestion pipeline in ADX"
+echo "### Command 1: Create data ingestion pipeline in ADX"
 echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON"
 echo ""
-echo "=== Command 2: Initialize AssetModel table in ADX by running pipeline"
+echo "### Command 2: Initialize AssetModel table in ADX by running pipeline"
 echo "az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg --output none"
 echo ""
 echo ""

@@ -1,5 +1,5 @@
 # Azure Digital Twins for Industrial IoT
-###### 15 mins to review documentation, 30 mins for script to run
+###### 15 mins to review documentation, 40 mins for script to run
 
 This sample shows how to use Azure Digital Twins in an industrial environment.
 
@@ -48,9 +48,9 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 <br>
 
 
-## Installation
+## Deployment
 
-### Download source code
+### Download sources
 
 First we need to prepare the environment.
 
@@ -212,32 +212,32 @@ When we query data from Azure Digital Twins graph we need to set the root twin. 
       `          site_data=site,` <br>
       `          enterprise_data=enterprise`
 
-### Verifying solution
+## Verify Deployment
 
 Azure Digital Twins for Industrial IoT solution simulates industrial IoT data points and uses them to
 
 - Update properties in the respective digital twin instance
 - Save IoT data into Azure Data Explorer
 
-Therefore to verify proper deployment you need to see Digital Twins properties updated and you need to be able to contextualıze IoT data wıth Asst Model dataç
+Therefore to verify proper deployment you need to see Digital Twins properties updated and you need to be able to contextualize IoT data with Asset Model data.
 
-#### Monitor Digital Twin Updates
+### Monitor Digital Twin Updates
 
 You an use below commands from Azure Shell window to monitor how property values change. Note that you should see a change approximately every minute.
 
 - Query first twin in the sample ($dtid="fr-line2-a3")
 
   ```bash
-  az dt twin show -n <prefix>assets --twin-id fr-line2-a3 --query "[{PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
+  az dt twin show -n <prefix>assets --twin-id fr-line2-a3 --query "[{TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {TwinId: \"\$dtId\", PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
   ```
 
 - Query first twin in the sample ($dtid="ca-line1-a1")
 
   ```bash
-  az dt twin show -n <prefix>assets --twin-id ca-line1-a1 --query "[{PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
+  az dt twin show -n <prefix>assets --twin-id ca-line1-a1 --query "[{TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {TwinId: \"\$dtId\", PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
   ```
 
-#### Contexualize Industrial IoT Data with Asset Model data from Azure Digital Twins 
+### Contexualize Industrial IoT Data with Asset Model data from Azure Digital Twins 
 - Go to Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
 - Select "Query" in the left blade
 - Make sure "iiotdb" database is selected on the left
@@ -248,7 +248,7 @@ You an use below commands from Azure Shell window to monitor how property values
   | where Timestamp between (ago(1d) .. ago(0h))
   | join kind=leftouter AssetModel on $left.AssetId == $right.AssetId
   | where Site == "Canada"
-  | where AssetName == "45-Preprocess LINE 2B "
+  | where AssetDescription == "45-Preprocess LINE 2B "
   | where AssetModel == "MKR132 "
   ```
 
