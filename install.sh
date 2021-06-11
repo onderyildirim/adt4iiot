@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function show_help() {
-   echo "Run this script to simulate in Azure: a Purdue Network, PLCs, IoT Edge devices sending data to IoT Hub."
+   echo "Run this script to deploy Azure Digital Twins for Industrial IoT Solution."
    echo
    echo "Syntax: ./install.sh [-flag=value]"
    echo ""
@@ -275,7 +275,6 @@ else
   vmMachineName=${simVMDeploymentOutput[0]}
   vmMachineFqdn=${simVMDeploymentOutput[1]}
   vmAdminUserName=${simVMDeploymentOutput[2]}
-  vmSSH=${simVMDeploymentOutput[3]}
 
     if [ $debug == 1 ]; then
       echo "Simulator VM Name : $vmMachineName"
@@ -299,7 +298,6 @@ else
   vmMachineName=${edgeVMDeploymentOutput[0]}
   vmMachineFqdn=${edgeVMDeploymentOutput[1]}
   vmAdminUserName=${edgeVMDeploymentOutput[2]}
-  vmSSH=${edgeVMDeploymentOutput[3]}
 
   if [ $debug == 1 ]; then
     echo "Edge VM Name : $vmMachineName"
@@ -326,8 +324,10 @@ echo "Uploading ADT model from file '$adtModelDefinitionsFile'"
 az dt model create --dt-name $adtName --resource-group $rg --models $adtModelDefinitionsFile --output none
 
 echo "======================================"
+echo "Below commands help you to stop compute resources and minimize consumption"
+echo "when you dont use the solution and start them again when you need to use them. "
 echo ""
-echo "Commands to start compute resources"
+echo "Commands to start compute resources."
 echo "az kusto cluster start --resource-group $rg --name $adxName --no-wait"
 echo "az vm start --resource-group $rg  -n $edgeVMMachineName"
 echo "az vm start --resource-group $rg  -n $simVMMachineName"
@@ -348,20 +348,22 @@ echo ""
 echo ""
 scriptDurationInSecs=$(( $(date +%s)-$(date +%s -d "$scriptStartedAt") ))
 echo "Script finished in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
-echo "Script finished in $scriptDurationInSecs sec(s)."
 echo ""
 echo ""
-
 echo "At this point, ADX database structure has to be created before initiating data ingestion. "
+echo ""
 echo "Goto ADX resource in Azure portal now and execute commands as described in readme section 'Post install configuration': https://github.com/onderyildirim/adt4iiot#post-install-configuration"
 echo ""
-echo "After you complete this step, run following commands from this window"
+echo "After you complete this step, return here and run following commands from this window"
 echo ""
 echo "=== Create data ingestion pipeline in ADX"
 echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON"
 echo ""
 echo "=== Initialize AssetModel table in ADX by running pipeline"
 echo "az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg --output none"
+echo ""
+echo ""
+echo ""
 
 
 
