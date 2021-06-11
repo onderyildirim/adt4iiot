@@ -1,12 +1,11 @@
 # Azure Digital Twins for Industrial IoT
-###### 30 mins
+###### 15 mins to review documentation, 30 mins for script to run
 
 This sample shows how to use Azure Digital Twins in an industrial environment.
 
 ![Azure Digital Twins for Industrial IoT Solution Architecture](images/arch.png)
 
 <br>
----
 <br>
 
 ## Pre-requisites
