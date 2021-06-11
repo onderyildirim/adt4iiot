@@ -100,17 +100,21 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
                               Default: ~/.ssh/id_rsa.pub
   -u,--adminuser         Name of the admin user to be created in simulator and edge VMs. Default: azureuser
   ```
-- Save the command given at the end of the script. It should be similar to below. If you forget to save the command or lose it, you can find it 
+- At this point, ADX database structure has to be created before initiating data ingestion. Before you move on make sure you copied two commands given below to a safe place.
+
   ```bash
-  az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --event-system-properties "iothub-connection-device-id" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
+  az kusto data-connection iot-hub create --cluster-name <prefix>adx --data-connection-name <prefix>hub --database-name "iiotdb" --resource-group <prefix>-rg --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --event-system-properties "iothub-connection-device-id" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
   ```
 
+  ```bash
+  az datafactory pipeline create-run --factory-name "<prefix>-syncassets" --name "SyncAssetModel" --resource-group <prefix>-rg --output none
+  ```
 
 ### Post install configuration
 #### Create Data Explorer schema
 - After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
 - Select "Query" in the left blade
-- Make sure "iiotdb" database is selected on the left
+- Make sure "*iiotdb*" database is selected on the left
 - Run following Data Explorer script in query window to create database schema
   ```KQL
   .execute database script <|
