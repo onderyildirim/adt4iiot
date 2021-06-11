@@ -135,11 +135,6 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     ```KQL
     .enable plugin azure_digital_twins_query_request
     ```
-
-- Go back to Azure shell window where you ran "install.sh" and run the command given at the end of install script. It should be similar to below
-    ```bash
-    az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
-    ```
 #### Upload Azure Digital Twins graph
 - Goto Azure Digital Twins instance in Azure portal and click on "Open Azure Digital Twins Explorer" in "Overview" blade.
 - Download `twingraph.xlsx` file from github repo to your local drive. Direct link to file is below
@@ -148,7 +143,18 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 - Select `twingraph.xlsx` file you downloaded and upload
 - Click *Save* button upper right
 
-#### [Optional] Activate Azure Data Factory trigger
+#### Complete install script commands
+- Go back to Azure shell window where you ran "install.sh" and run commands given at the end of install script. They should be similar to below
+    ```bash
+    az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
+    ```
+    <br>
+    ```bash
+    az datafactory pipeline create-run --factory-name <dataFactoryName> --name <dataFactoryPipelineName> --resource-group <resourceGroupName> --output none
+    ```
+
+### Optional configuration items
+#### Activate Azure Data Factory trigger
 Install script creates a trigger for data factory pipeline to transfer data from ADT into ADX. The trigger however is left disabled. If you would like it to run periodically, follow steps below 
 - Go to Azure Data Factory instance (named (prefix)-syncassets) in Azure Portal
 - Click on "Author & Monitor"
@@ -158,7 +164,7 @@ Install script creates a trigger for data factory pipeline to transfer data from
 - Select "Yes" under "Activated"
 - Optionally set "Recurence" to something other than default (24 hours)
 
-#### [Optional] Set root twin id in Azure Data Factory
+#### Set root twin id in Azure Data Factory
 When we query data from Azure Digital Twins graph we need to set the root twin. If you imported the default `twingraph.xlsx` file, the root entity is the twin id `contoso`. If you would like to import your own twin structure, also remember to modify root object in query within the ADF pipeline: 
 - Go to Azure Data Factory instance (named (prefix)-syncassets) in Azure Portal
 - Click on "Author & Monitor"
