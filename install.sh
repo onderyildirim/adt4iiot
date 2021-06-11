@@ -316,7 +316,14 @@ hubresourceid=$(az iot hub show --name $hubName --resource-group $rg --query "id
 
 remainingSeconds=$(( 600-$(( $(date +%s)-$(date +%s -d "$adtRoleAssignmentsGrantedAt") )) ))
 echo "Waiting for $remainingSeconds seconds for security settings to propogate"
-sleep $remainingSeconds
+
+sc=0
+while [ $sc -lt $remainingSeconds ]
+do
+   echo -ne "Please wait $(( $remainingSeconds-$sc-1 )) more seconds ... \r"
+   sleep 1
+   sc=$[$sc+1]
+done
 echo "Continuing..."
 
 adtModelDefinitionsFile="assetmodel/assetmodel.json"

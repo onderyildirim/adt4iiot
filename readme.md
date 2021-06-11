@@ -50,7 +50,7 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 
 ## Installation
 
-### Prepare source code
+### Download source code
 
 First we need to prepare the environment.
 
@@ -82,7 +82,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
   ```
   By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "<prefix>-rg". You may also give any prefix you want from the command line parameters 
   ```bash
-  ./install.sh prefix=adt4iiot
+  ./install.sh --prefix adt4iiot
   ```
   The full syntax for install.sh is below
   ```bash
