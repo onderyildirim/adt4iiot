@@ -22,17 +22,18 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
   3. Azure CLI extensions
      - Verify if required extensions is already installed with at least versions below:
      
-| Extension   | Version |
-| ----------- | ------- |
-| azure-iot   | 0.10.13 |
-| datafactory | 0.3.0   |
-| kusto       | 0.3.0   |
-
+        | Extension   | Version |
+        | ----------- | ------- |
+        | azure-iot   | 0.10.13 |
+        | datafactory | 0.3.0   |
+        | kusto       | 0.3.0   |
+        <br>
      - Run following to get versions
-       ```CLI
+
+       ```bash
        az --version
        ```
-
+        <br>
      - If not yet installed or lower version, run following commands to install/upgrade:
        ```bash
        az extension add --upgrade --name azure-iot
@@ -45,7 +46,6 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
      ```bash
      az account show
      ```
-
 <br>
 
 
@@ -118,7 +118,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     .create-merge table iiot_raw  (rawdata:dynamic)
     .alter-merge table iiot_raw policy retention softdelete = 0d
     .create-or-alter table iiot_raw ingestion json mapping 'iiot_raw_mapping' '[{"column":"rawdata","path":"$","datatype":"dynamic"}]'
-    .create-merge table iiot (Timestamp: datetime, TagId: string, AssetId: string, Tag:string, Value: double, DeviceId:string)
+    .create-merge table iiot (Timestamp: datetime, TagId: string, AssetId: string, Tag:string, Value: double)
     .create-or-alter function parseRawData()
     {
     iiot_raw
@@ -127,8 +127,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     | extend AssetId = tostring(rawdata.TagId)
     | extend Tag = tostring(rawdata.TagId)
     | extend Value = todouble(rawdata.Value)
-    | extend DeviceId = tostring(rawdata.['iothub-connection-device-id'])
-    | project Timestamp, TagId, AssetId, Tag, Value, DeviceId
+    | project Timestamp, TagId, AssetId, Tag, Value
     }
     .alter table iiot policy update @'[{"IsEnabled": true, "Source": "iiot_raw", "Query": "parseRawData()", "IsTransactional": true, "PropagateIngestionProperties": true}]'
     ```
@@ -137,9 +136,9 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     .enable plugin azure_digital_twins_query_request
     ```
 
-- Run the command given at the end of install script. It should be similar to below
+- Go back to Azure shell window where you ran "install.sh" and run the command given at the end of install script. It should be similar to below
     ```bash
-    az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --event-system-properties "iothub-connection-device-id" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
+    az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
     ```
 #### Upload Azure Digital Twins graph
 - Goto Azure Digital Twins instance in Azure portal and click on "Open Azure Digital Twins Explorer" in "Overview" blade.

@@ -13,6 +13,7 @@ function show_help() {
    echo "-v,--vmSize            Size of the Azure VMs to deploy. Default: Standard_B1ms."
    echo "-k,--ssh-keypath       Path to the SSH public key that should be used to connect to simulator and edge VMs. Default: ~/.ssh/id_rsa.pub"
    echo "-u,--adminuser         Name of the admin user to be created in simulator and edge VMs. Default: azureuser"
+   echo "-d,--debug             Output debug information."
    echo
 }
 
@@ -21,7 +22,7 @@ location="eastus2"
 adminUserName="azureuser"
 vmSize="Standard_B1ms"
 adminUserSshPublicKeyPath="$(readlink -f ~/.ssh/id_rsa.pub)"
-
+debug=0
 
 while (( "$#" )); do
   case "$1" in
@@ -82,6 +83,9 @@ while (( "$#" )); do
         exit 1
       fi
       ;;
+    -d|--debug)
+      debug=1
+      ;;
     -*|--*=) 
       echo "Error: Unsupported argument $1" >&2
       exit 1
@@ -112,14 +116,17 @@ networkName="$prefix-network"
 adminUserSshPublicKey=$(cat $adminUserSshPublicKeyPath)
 
 
-echo "Parameters:"
-echo "   prefix=$prefix"
-echo "   rg=$rg"
-echo "   location=$location"
-echo "   adminUserName=$adminUserName"
-echo "   adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
-echo "   vmSize=$vmSize"
-echo "   subscription=$subscription"
+if [ $debug == 1 ]; then
+  echo "Parameters:"
+  echo "   prefix=$prefix"
+  echo "   rg=$rg"
+  echo "   location=$location"
+  echo "   adminUserName=$adminUserName"
+  echo "   adminUserSshPublicKeyPath=$adminUserSshPublicKeyPath"
+  echo "   vmSize=$vmSize"
+  echo "   subscription=$subscription"
+fi
+
 
 if [ ! -z $subscription ]; then
   az account set --subscription $subscription
@@ -128,15 +135,6 @@ fi
 subscriptionDetails=($(az account show --query '[id, name]' -o tsv))
 subscription=${subscriptionDetails[0]}
 subscriptionName=${subscriptionDetails[1]}
-echo "Deploying to Azure Subscription: ${subscriptionName} (${subscription})" 
-
-if ( $(az group exists -n "$rg") )
-then
-  echo "Resource group '$rg' already exists."
-else
-  az group create --name "$rg" --location "$location" --tags "ADT4IIOT" "prefix"="$prefix" "CreatedAt"="$(date --utc "+%Y-%m-%d %H:%M:%S")"  1> /dev/null
-  echo "Create resource group: $rg"
-fi
 
 networkDeploymentFilePath="templates/networkdeploy.json"
 vmDeploymentFilePath="templates/vmdeploy.json"
@@ -160,26 +158,42 @@ asaConsumerGroup="asaconsumer"
 adxConsumerGroup="adxconsumer"
 edgeDeviceId="edge1"
 
-echo "Variables:"
-echo "   storageName=$storageName"
-echo "   configContainerName=$configContainerName"
-echo "   funcAppName=$funcAppName"
-echo "   mapFileName=$mapFileName"
-echo "   adtName=$adtName"
-echo "   adxName=$adxName"
-echo "   adxDbName=$adxDbName"
-echo "   funcName=$funcName"
-echo "   adfName=$adfName"
-echo "   adfPipelineName=$adfPipelineName"
-echo "   asaName=$asaName"
-echo "   hubName=$hubName"
-echo "   asaConsumerGroup=$asaConsumerGroup"
-echo "   adxConsumerGroup=$adxConsumerGroup"
-echo "   edgeDeviceId=$edgeDeviceId"
-echo "   networkDeploymentFilePath=$networkDeploymentFilePath"
-echo "   vmDeploymentFilePath=$vmDeploymentFilePath"
-echo "   functionDeploymentFilePath=$functionDeploymentFilePath"
-echo "   otherServicesDeploymentFilePath=$otherServicesDeploymentFilePath"
+if [ $debug == 1 ]; then
+  echo ""
+  echo "Variables:"
+  echo "   SubscriptionId= ${subscription}" 
+  echo "   SubscriptionName=${subscriptionName}"
+  echo "   storageName=$storageName"
+  echo "   configContainerName=$configContainerName"
+  echo "   funcAppName=$funcAppName"
+  echo "   mapFileName=$mapFileName"
+  echo "   adtName=$adtName"
+  echo "   adxName=$adxName"
+  echo "   adxDbName=$adxDbName"
+  echo "   funcName=$funcName"
+  echo "   adfName=$adfName"
+  echo "   adfPipelineName=$adfPipelineName"
+  echo "   asaName=$asaName"
+  echo "   hubName=$hubName"
+  echo "   asaConsumerGroup=$asaConsumerGroup"
+  echo "   adxConsumerGroup=$adxConsumerGroup"
+  echo "   edgeDeviceId=$edgeDeviceId"
+  echo "   networkDeploymentFilePath=$networkDeploymentFilePath"
+  echo "   vmDeploymentFilePath=$vmDeploymentFilePath"
+  echo "   functionDeploymentFilePath=$functionDeploymentFilePath"
+  echo "   otherServicesDeploymentFilePath=$otherServicesDeploymentFilePath"
+  echo "==============================================="
+fi
+
+echo ""
+
+if ( $(az group exists -n "$rg") )
+then
+  echo "Resource group '$rg' already exists."
+else
+  echo "Creating resource group: $rg"
+  az group create --name "$rg" --location "$location" --tags "ADT4IIOT" "prefix"="$prefix" "CreatedAt"="$(date --utc "+%Y-%m-%d %H:%M:%S")"  1> /dev/null
+fi
 
 echo "Deploying function app: $funcAppName"
 functionDeploymentOutput=($(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
@@ -217,7 +231,7 @@ az kusto cluster-principal-assignment create --cluster-name $adxName --principal
 echo "Granting access to ADF in ADX database"
 az kusto database add-principal --cluster-name $adxName --resource-group $rg --database-name $adxDbName --value name=$adfName app-id=$adfappid type="App" role="Admin" --output none
 
-echo "Setting adt service url setting for Azure Function"
+echo "Setting ADT_SERVICE_URL for Azure Function '$funcAppName'"
 adthostname="https://"$(az dt show -n $adtName --query 'hostName' -o tsv)
 az functionapp config appsettings set -g $rg -n $funcAppName --settings "ADT_SERVICE_URL=$adthostname" --output none
 
@@ -227,7 +241,8 @@ storageConnStr=$(az storage account show-connection-string --name $storageName -
 storageSasToken=$(az storage container generate-sas --connection-string $storageConnStr --name $configContainerName --permissions acdlrw --expiry $tomorrow)
 az storage blob upload --connection-string $storageConnStr --container-name $configContainerName --name $mapFileName --file "assetmodel/$mapFileName" --sas-token $storageSasToken --output none
 
-if [ -z $(az iot hub device-identity show --hub-name $hubName --resource-group $rg --device-id $edgeDeviceId  --query deviceId --output tsv) ]; then
+
+if [ -z $(az iot hub device-identity list --hub-name $hubName --resource-group $rg --query "[?deviceId=='$edgeDeviceId'].deviceId" --output tsv) ]; then
   echo "Creating device in IoT Hub"
   az iot hub device-identity create --hub-name $hubName --resource-group $rg --device-id $edgeDeviceId  --edge-enabled --output none
 fi
@@ -248,7 +263,6 @@ else
 fi
 
 simVMMachineName="$prefix-simvm"
-echo "simVMMachineName=$simVMMachineName"
 
 if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$simVMMachineName'].id" --output tsv) ] 
 then
@@ -263,16 +277,16 @@ else
   vmAdminUserName=${simVMDeploymentOutput[2]}
   vmSSH=${simVMDeploymentOutput[3]}
 
-  echo "VM Name : $vmMachineName"
-  echo "VM Fqdn : $vmMachineFqdn"
-  echo "VM Admin: $vmAdminUserName"
-  echo "VM SSH  : ssh ${vmAdminUserName}@${vmMachineFqdn}"
-  echo "======================================"
+    if [ $debug == 1 ]; then
+      echo "Simulator VM Name : $vmMachineName"
+      echo "Simulator VM Fqdn : $vmMachineFqdn"
+      echo "Simulator VM Admin: $vmAdminUserName"
+    fi  
+  echo "Simulator VM SSH  : ssh ${vmAdminUserName}@${vmMachineFqdn}"
 fi
 
 
 edgeVMMachineName="$prefix-edgevm"
-echo "edgeVMMachineName=$edgeVMMachineName"
 
 if [ ! -z  $(az vm list --resource-group "$rg" --query "[?name=='$edgeVMMachineName'].id" --output tsv) ] 
 then
@@ -287,11 +301,13 @@ else
   vmAdminUserName=${edgeVMDeploymentOutput[2]}
   vmSSH=${edgeVMDeploymentOutput[3]}
 
-  echo "VM Name : $vmMachineName"
-  echo "VM Fqdn : $vmMachineFqdn"
-  echo "VM Admin: $vmAdminUserName"
-  echo "VM SSH  : ssh ${vmAdminUserName}@${vmMachineFqdn}"
-  echo "======================================"
+  if [ $debug == 1 ]; then
+    echo "Edge VM Name : $vmMachineName"
+    echo "Edge VM Fqdn : $vmMachineFqdn"
+    echo "Edge VM Admin: $vmAdminUserName"
+  fi
+
+  echo "Edge VM SSH  : ssh ${vmAdminUserName}@${vmMachineFqdn}"
 fi
 
 deploymentManifestTemplateFile="templates/edgeDeploymentManifest.json"
@@ -308,10 +324,6 @@ echo "Continuing..."
 adtModelDefinitionsFile="assetmodel/assetmodel.json"
 echo "Uploading ADT model from file '$adtModelDefinitionsFile'"
 az dt model create --dt-name $adtName --resource-group $rg --models $adtModelDefinitionsFile --output none
-
-echo "Running '$adfPipelineName' pipeline in ADF to fetch initial AssetModel from ADT."
-az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg
-
 
 echo "======================================"
 echo ""
@@ -336,15 +348,19 @@ echo ""
 echo ""
 scriptDurationInSecs=$(( $(date +%s)-$(date +%s -d "$scriptStartedAt") ))
 echo "Script finished in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
+echo "Script finished in $scriptDurationInSecs sec(s)."
 echo ""
 echo ""
 
 echo "At this point, ADX database structure has to be created before initiating data ingestion. "
-echo "Goto ADX resource in Azure portal now and execute commands as described in readme section 'Create Data Explorer schema'."
-echo "Then run the following command from this window"
-echo "==="
+echo "Goto ADX resource in Azure portal now and execute commands as described in readme section 'Post install configuration'."
+echo "After schema is created, run following commands from this window"
+echo ""
+echo "=== Create data ingestion pipeline in ADX"
 echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON"
-echo "==="
+echo ""
+echo "=== Initialize AssetModel table in ADX by running pipeline"
+echo "az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg --output none"
 
 
 
