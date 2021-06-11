@@ -10,7 +10,7 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 
 ## Pre-requisites
 
-- An **Azure account with a valid subscription**. For more details on Azure costs incurred, see this [Azure Pricing Estimate](https://azure.com/e/7e95c78d776b46f38fe6a16b337089e7).
+- An **Azure account with a valid subscription**. 
 
 - **[Azure CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) with CLI extensions below** installed. We'll use a bash terminal from the [Azure Cloud Shell](https://docs.microsoft.com/en-us/azure/cloud-shell/overview) during install for which only a browser is needed.
 
@@ -246,6 +246,32 @@ You an use below commands from Azure Shell window to monitor how property values
   | where Site == "Canada"
   | where AssetName == "45-Preprocess LINE 2B "
   | where AssetModel == "MKR132 "
+  ```
+
+
+## Azure Costs
+
+For details on Azure costs of this solution, see the [Azure Pricing Estimate](https://azure.com/e/7e95c78d776b46f38fe6a16b337089e7).
+
+Also note that you can minimize costs but shutting down compute resources when you are not using the solution. Commands to shutdown and start compute resources on demand are given at the end of install script and they are similar to below
+
+- Commands to start compute resources.
+
+  ```bash
+  az kusto cluster start --resource-group "<prefix>-rg" --name "<prefix>adx" --no-wait
+  az vm start --resource-group "<prefix>-rg"  -n "<prefix>-simvm"
+  az vm start --resource-group "<prefix>-rg"  -n "<prefix>-edgevm"
+  az stream-analytics job start --resource-group "<prefix>-rg" --name "<prefix>-hub2adt"
+  az functionapp start --resource-group "<prefix>-rg" --name "<prefix>asa2adt"
+  ```
+- Commands to stop compute resources.
+
+  ```bash
+  az kusto cluster stop --resource-group "<prefix>-rg" --name "<prefix>adx" --no-wait
+  az vm deallocate --resource-group "<prefix>-rg"  -n "<prefix>-simvm"
+  az vm deallocate --resource-group "<prefix>-rg"  -n "<prefix>-edgevm"
+  az stream-analytics job stop --resource-group "<prefix>-rg" --name "<prefix>-hub2adt"
+  az functionapp stop --resource-group "<prefix>-rg" --name "<prefix>asa2adt"
   ```
 
 
