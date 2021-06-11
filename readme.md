@@ -169,26 +169,28 @@ When we query data from Azure Digital Twins graph we need to set the root twin. 
 - Select "Command" tab at the bottom pane
 - Change **root twin id** to match the root twin of your hierarchy
 
-.set-or-replace AssetModel <|
-evaluate azure_digital_twins_query_request("https://<ADT instance>.digitaltwins.azure.net", "SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = '**contoso**'")
-   | project AssetId=tostring(asset.TagId), 
-             DtId=tostring(asset.$dtId), 
-             Asset=tostring(asset.Name), 
-             AssetName=tostring(asset.AssetName), 
-             YearDeployed=tostring(asset.YearDeployed), 
-             AssetModel=tostring(asset.AssetModel), 
-             Capacity=tostring(asset.Capacity), 
-             Unit=tostring(unit.Name), 
-             Cell=tostring(cell.Name), 
-             Area=tostring(area.Name), 
-             Site=tostring(site.Name), 
-             Enterprise=tostring(enterprise.Name), 
-             asset_data=asset, 
-             unit_data=unit, 
-             cell_data=cell, 
-             area_data=area, 
-             site_data=site, 
-             enterprise_data=enterprise
+    ```KQL
+    .set-or-replace AssetModel <|
+    evaluate azure_digital_twins_query_request("https://<ADT instance>.digitaltwins.azure.net", "SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = '**contoso**'")
+      | project AssetId=tostring(asset.TagId), 
+                DtId=tostring(asset.$dtId), 
+                Asset=tostring(asset.Name), 
+                AssetName=tostring(asset.AssetName), 
+                YearDeployed=tostring(asset.YearDeployed), 
+                AssetModel=tostring(asset.AssetModel), 
+                Capacity=tostring(asset.Capacity), 
+                Unit=tostring(unit.Name), 
+                Cell=tostring(cell.Name), 
+                Area=tostring(area.Name), 
+                Site=tostring(site.Name), 
+                Enterprise=tostring(enterprise.Name), 
+                asset_data=asset, 
+                unit_data=unit, 
+                cell_data=cell, 
+                area_data=area, 
+                site_data=site, 
+                enterprise_data=enterprise
+    ```
 
 
 ## Contributing
