@@ -140,12 +140,12 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
       https://github.com/onderyildirim/adt4iiot/blob/main/assetmodel/twingraph.xlsx
 - Goto Azure Digital Twins instance in Azure portal and click on "Open Azure Digital Twins Explorer" in "Overview" blade.
 - Click on "Twin Graph" and then "Import Graph"<br>
-  ![Upload Azure Digital Twins graph - Step 1](images\adtimport1.png)
+  ![Upload Azure Digital Twins graph - Step 1](images/adtimport1.png)
 - Select `twingraph.xlsx` file you downloaded above and select upload
 - Click *Save* button upper right<br>
-  ![Upload Azure Digital Twins graph - Step 2](images\adtimport2.png)
+  ![Upload Azure Digital Twins graph - Step 2](images/adtimport2.png)
 - You should see below if upload is succesfull<br>
-  ![Upload Azure Digital Twins graph - Step 3](images\adtimport3.png)
+  ![Upload Azure Digital Twins graph - Step 3](images/adtimport3.png)
 
 #### Complete install script commands
 - Go back to Azure shell window where you ran "install.sh" and run commands given at the end of install script. They should be similar to below
