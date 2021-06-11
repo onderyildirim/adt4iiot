@@ -8,6 +8,7 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
 <br>
 ---
 <br>
+
 ## Pre-requisites
 
 - An **Azure account with a valid subscription**. When using the default simulation configuration, 7 Virtual Machines (VMs) and 1 Virtual Network (VNet) will be deployed in your subscription for a daily cost of **$XXX**. For more details, see this [Azure Pricing Estimate](https://azure.com/e/4df47d47440b43e78076078496e2c3d1).
