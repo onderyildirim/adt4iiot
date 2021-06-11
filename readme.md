@@ -60,7 +60,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 - Download the scripts:
 
     ```bash
-    git clone git clone https://github.com/onderyildirim/adt4iiot.git
+    git clone https://github.com/onderyildirim/adt4iiot.git
     ```
 
 - Give execution permissions to these script:

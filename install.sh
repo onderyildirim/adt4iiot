@@ -134,7 +134,7 @@ if ( $(az group exists -n "$rg") )
 then
   echo "Resource group '$rg' already exists."
 else
-  az group create --name "$rg" --location "$location" --tags "ADT4IIOT" "prefix"="$prefix" "CreatedAt"="$(date --utc +%Y-%m-%d %H:%M:%S)"  1> /dev/null
+  az group create --name "$rg" --location "$location" --tags "ADT4IIOT" "prefix"="$prefix" "CreatedAt"="$(date --utc "+%Y-%m-%d %H:%M:%S")"  1> /dev/null
   echo "Create resource group: $rg"
 fi
 
