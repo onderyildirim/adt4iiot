@@ -162,6 +162,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 
 If your connection expires in Azure Shell, you can just open a new connection and run commands there.
 
+
 ### Optional configuration items
 #### Activate Azure Data Factory trigger
 Install script creates a trigger for data factory pipeline to transfer data from ADT into ADX. The trigger however is left disabled. If you would like it to run periodically, follow steps below 
@@ -211,6 +212,11 @@ When we query data from Azure Digital Twins graph we need to set the root twin. 
       `          area_data=area,` <br>
       `          site_data=site,` <br>
       `          enterprise_data=enterprise`
+
+
+### Deployment complete
+
+At this point your deployment is complete. Wait for 5-10 minutes for data to accumulate and continue to verify your deployment by reviewing data.
 
 ## Verify Deployment
 

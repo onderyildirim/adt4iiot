@@ -198,15 +198,15 @@ fi
 
 echo "Deploying function app: $funcAppName"
 az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
-storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName"
+storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" --output none
 
 echo "Deploying rest of platform services: ADT, ASA, ADF, ADX, IoT Hub"
 az deployment group create --name PaaSServicesDeployment --resource-group "$rg" --template-file "$otherServicesDeploymentFilePath" --parameters \
 adtName="$adtName" adxName="$adxName" adxDbName="$adxDbName" funcAppName="$funcAppName" funcName="$funcName" adfName="$adfName" adfPipelineName="$adfPipelineName" \
-asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup"
+asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup" --output none
 
 echo "Starting ASA job: $asaName"
-az stream-analytics job start --resource-group $rg --name $asaName
+az stream-analytics job start --resource-group $rg --name $asaName --output none
 
 echo "Getting managed identity of ADF"
 adfprincipalid=$(az datafactory show --resource-group $rg --factory-name $adfName --query identity.principalId -o tsv)
@@ -325,7 +325,7 @@ do
    sleep 1
    sc=$[$sc+1]
 done
-echo "                                                \r"
+echo -ne "                                                \r"
 
 adtModelDefinitionsFile="assetmodel/assetmodel.json"
 echo "Uploading ADT model from file '$adtModelDefinitionsFile'"
@@ -354,7 +354,7 @@ echo ""
 echo "======================================"
 echo ""
 echo ""
-echo "Script completed at: $(date)"
+echo "Script completed at $(date)"
 scriptDurationInSecs=$(( $(date +%s)-$(date +%s -d "$scriptStartedAt") ))
 echo "Script completed in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
 echo ""
@@ -367,7 +367,7 @@ echo ""
 echo "After you complete 'Post install configuration' step, return here and run following commands from this window"
 echo ""
 echo "### Command 1: Create data ingestion pipeline in ADX"
-echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON"
+echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON --output none"
 echo ""
 echo "### Command 2: Initialize AssetModel table in ADX by running pipeline"
 echo "az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg --output none"
