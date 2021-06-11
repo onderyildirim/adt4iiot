@@ -77,7 +77,7 @@
             "properties": {
                 "trustedExternalTenants": [],
                 "enableDiskEncryption": false,
-                "enableStreamingIngest": false,
+                "enableStreamingIngest": true,
                 "enablePurge": false,
                 "enableDoubleEncryption": false,
                 "engineType": "V3"
@@ -219,7 +219,7 @@
                         "typeProperties": {
                             //"endpoint": "[reference(resourceId('Microsoft.Kusto/Clusters', variables('adxName'))).uri]",
                             "endpoint": "[concat('https://', variables('adxName'),'.', variables('location'), '.kusto.windows.net')]",
-                            "database": "[variables('adxName')]"
+                            "database": "[variables('adxDbName')]"
                         }
                     }
                 },

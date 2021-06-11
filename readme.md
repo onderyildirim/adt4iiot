@@ -107,9 +107,11 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 
 
 ### Post install configuration
-- After the script finishes, goto Azure Data Explorer resource created in Azure portal 
+#### Create Data Explorer schema
+- After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
 - Select "Query" in the left blade
-- Run following Data Explorer script to create database schema
+- Make sure "iiotdb" database is selected on the left
+- Run following Data Explorer script in query window to create database schema
     ```KQL
     .execute database script <|
     .create-merge table iiot_raw  (rawdata:dynamic)
@@ -138,7 +140,54 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     ```bash
     az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --event-system-properties "iothub-connection-device-id" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
     ```
+#### Upload Azure Digital Twins graph
+- Goto Azure Digital Twins instance in Azure portal and click on "Open Azure Digital Twins Explorer" in "Overview" blade.
+- Download `twingraph.xlsx` file from github repo to your local drive. Direct link to file is below
+      `https://github.com/onderyildirim/adt4iiot/blob/main/assetmodel/twingraph.xlsx`
+- Click on "Twin Graph" and then "Import Graph"
+- Select `twingraph.xlsx` file you downloaded and upload
+- Click *Save* button upper right
 
+#### [Optional] Activate Azure Data Factory trigger
+Install script creates a trigger for data factory pipeline to transfer data from ADT into ADX. The trigger however is left disabled. If you would like it to run periodically, follow steps below 
+- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Click on "Author & Monitor"
+- Click on "Manage" on the toolbat at the left
+- Click on "Triggers" under "Author"
+- Click "DailyTrigger"
+- Select "Yes" under "Activated"
+- Optionally set "Recurence" to something other than default (24 hours)
+
+#### [Optional] Set root twin id in Azure Data Factory
+When we query data from Azure Digital Twins graph we need to set the root twin. If you imported the default `twingraph.xlsx` file, the root entity is the twin id `contoso`. If you would like to import your own twin structure, also remember to modify root object in query within the ADF pipeline: 
+- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Click on "Author & Monitor"
+- Click on "Author" on the toolbat at the left
+- Click on "SyncAssetModel" under "Pipeline"
+- Click "SyncAssetModelCommand" in the editor pane
+- Select "Command" tab at the bottom pane
+- Change **root twin id** to match the root twin of your hierarchy
+
+.set-or-replace AssetModel <|
+evaluate azure_digital_twins_query_request("https://<ADT instance>.digitaltwins.azure.net", "SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = '**contoso**'")
+   | project AssetId=tostring(asset.TagId), 
+             DtId=tostring(asset.$dtId), 
+             Asset=tostring(asset.Name), 
+             AssetName=tostring(asset.AssetName), 
+             YearDeployed=tostring(asset.YearDeployed), 
+             AssetModel=tostring(asset.AssetModel), 
+             Capacity=tostring(asset.Capacity), 
+             Unit=tostring(unit.Name), 
+             Cell=tostring(cell.Name), 
+             Area=tostring(area.Name), 
+             Site=tostring(site.Name), 
+             Enterprise=tostring(enterprise.Name), 
+             asset_data=asset, 
+             unit_data=unit, 
+             cell_data=cell, 
+             area_data=area, 
+             site_data=site, 
+             enterprise_data=enterprise
 
 
 ## Contributing

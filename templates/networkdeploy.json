@@ -53,7 +53,7 @@
               "description": "Allow Inbound SSH",
               "protocol": "*",
               "sourcePortRange": "*",
-              "destinationPortRanges": [ "[variables('PortSsh')]", "[variables('PortRdp')]", "[variables('PortNodered')]" ],
+              "destinationPortRanges": [ "[variables('PortSsh')]", "[variables('PortNodered')]" ],
               "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",

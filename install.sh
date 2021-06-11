@@ -16,6 +16,7 @@ function show_help() {
    echo
 }
 
+scriptStartedAt=$(date) 
 location="eastus2"
 adminUserName="azureuser"
 vmSize="Standard_B1ms"
@@ -133,7 +134,7 @@ if ( $(az group exists -n "$rg") )
 then
   echo "Resource group '$rg' already exists."
 else
-  az group create --name "$rg" --location "$location" --tags "$prefix" "CreationDate"=$(date --utc +%Y%m%d_%H%M%SZ)  1> /dev/null
+  az group create --name "$rg" --location "$location" --tags "ADT4IIOT" "prefix"="$prefix" "CreatedAt"="$(date --utc +%Y-%m-%d %H:%M:%S)"  1> /dev/null
   echo "Create resource group: $rg"
 fi
 
@@ -192,6 +193,8 @@ otherServicesDeploymentOutput=($(az deployment group create --name OtherServices
 adtName="$adtName" adxName="$adxName" adxDbName="$adxDbName" funcAppName="$funcAppName" funcName="$funcName" adfName="$adfName" adfPipelineName="$adfPipelineName" \
 asaName="$asaName" hubName="$hubName" asaConsumerGroup="$asaConsumerGroup" adxConsumerGroup="$adxConsumerGroup"))
 
+echo "Starting ASA job: $asaName"
+az stream-analytics job start --resource-group $rg --name $asaName
 
 echo "Getting managed identity of ADF"
 adfprincipalid=$(az datafactory show --resource-group $rg --factory-name $adfName --query identity.principalId -o tsv)
@@ -309,14 +312,41 @@ adtModelDefinitionsFile="assetmodel/assetmodel.json"
 echo "Uploading ADT model from file '$adtModelDefinitionsFile'"
 az dt model create --dt-name $adtName --resource-group $rg --models $adtModelDefinitionsFile --output none
 
-echo "Script finished."
+echo "Running '$adfPipelineName' pipeline in ADF to fetch initial AssetModel from ADT."
+az datafactory pipeline create-run --factory-name $adfName --name $adfPipelineName --resource-group $rg
+
+
 echo "======================================"
+echo ""
+echo "Commands to start compute resources"
+echo "az kusto cluster start --resource-group $rg --name $adxName --no-wait"
+echo "az vm start --resource-group $rg  -n $edgeVMMachineName"
+echo "az vm start --resource-group $rg  -n $simVMMachineName"
+echo "az stream-analytics job start --resource-group $rg --name $asaName"
+echo "az functionapp start --resource-group $rg --name $funcAppName"
+echo ""
+echo "======================================"
+echo ""
+echo "Commands to stop compute resources"
+echo "az kusto cluster stop --resource-group $rg --name $adxName --no-wait"
+echo "az vm deallocate --resource-group $rg  -n $edgeVMMachineName"
+echo "az vm deallocate --resource-group $rg  -n $simVMMachineName"
+echo "az stream-analytics job stop --resource-group $rg --name $asaName"
+echo "az functionapp stop --resource-group $rg --name $funcAppName"
+echo ""
+echo "======================================"
+echo ""
+echo ""
+scriptDurationInSecs=$(( $(date +%s)-$(date +%s -d "$scriptStartedAt") ))
+echo "Script finished in $(( $scriptDurationInSecs/60 )) minute(s) $(( $scriptDurationInSecs%60 )) sec(s)."
+echo ""
+echo ""
 
 echo "At this point, ADX database structure has to be created before initiating data ingestion. "
-echo "Goto ADX resource in Azure portal now and execute commands as described in readme section 'Post install configuration'."
+echo "Goto ADX resource in Azure portal now and execute commands as described in readme section 'Create Data Explorer schema'."
 echo "Then run the following command from this window"
 echo "==="
-echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\""
+echo "az kusto data-connection iot-hub create --cluster-name $adxName --data-connection-name $hubName --database-name $adxDbName --resource-group $rg --consumer-group $adxConsumerGroup --data-format JSON --iot-hub-resource-id \"$hubresourceid\" --location $location --event-system-properties \"iothub-connection-device-id\" --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name \"iothubowner\" --table-name \"iiot_raw\" --data-format MULTIJSON"
 echo "==="
 
 

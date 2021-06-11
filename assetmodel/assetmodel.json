@@ -96,19 +96,39 @@
     "contents": [
         {
             "@type": "Property",
-            "name": "SV",
-            "schema": "integer",
-            "writable": true
+            "name": "AssetDescription",
+            "schema": "string"
         },
         {
             "@type": "Property",
-            "name": "TV",
-            "schema": "integer",
-            "writable": true
+            "name": "YearDeployed",
+            "schema": "string"
+        },
+        {
+            "@type": "Property",
+            "name": "AssetModel",
+            "schema": "string"
+        },
+        {
+            "@type": "Property",
+            "name": "Capacity",
+            "schema": "string"
         },
         {
             "@type": "Property",
             "name": "STATUS",
+            "schema": "integer",
+            "writable": true
+        },
+        {
+            "@type": "Property",
+            "name": "ITEM_COUNT_GOOD",
+            "schema": "integer",
+            "writable": true
+        },
+        {
+            "@type": "Property",
+            "name": "ITEM_COUNT_BAD",
             "schema": "integer",
             "writable": true
         }
