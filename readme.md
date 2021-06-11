@@ -22,13 +22,13 @@ This sample shows how to use Azure Digital Twins in an industrial environment.
   3. Azure CLI extensions
      - Verify if required extensions is already installed with at least versions below:
      
-       ```CLI
-      azure-iot    0.10.13
-      datafactory  0.3.0
-      kusto        0.3.0
-       ```
+| Extension   | Version |
+| ----------- | ------- |
+| azure-iot   | 0.10.13 |
+| datafactory | 0.3.0   |
+| kusto       | 0.3.0   |
 
-     - Run followıng to get versions
+     - Run following to get versions
        ```CLI
        az --version
        ```

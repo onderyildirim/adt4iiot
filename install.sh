@@ -148,11 +148,6 @@ configContainerName="${prefix}-config"
 funcAppName="${prefix}asa2adt"
 mapFileName="assetid2dtid.csv"
 
-echo "Deploying function app: $funcAppName"
-functionDeploymentOutput=($(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
-storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" ))
-
-
 adtName="${prefix}assets"
 adxName="${prefix}adx" #cluster name allows numbers and lower case letters only
 adxDbName="iiotdb"
@@ -164,7 +159,6 @@ hubName="${prefix}hub"
 asaConsumerGroup="asaconsumer"
 adxConsumerGroup="adxconsumer"
 edgeDeviceId="edge1"
-
 
 echo "Variables:"
 echo "   storageName=$storageName"
@@ -187,6 +181,9 @@ echo "   vmDeploymentFilePath=$vmDeploymentFilePath"
 echo "   functionDeploymentFilePath=$functionDeploymentFilePath"
 echo "   otherServicesDeploymentFilePath=$otherServicesDeploymentFilePath"
 
+echo "Deploying function app: $funcAppName"
+functionDeploymentOutput=($(az deployment group create --name FunctionDeployment --resource-group "$rg" --template-file "$functionDeploymentFilePath" --parameters \
+storageName="$storageName" configContainerName="$configContainerName" funcAppName="$funcAppName" mapFileName="$mapFileName" ))
 
 echo "Deploying rest of platform services: ADT, ASA, ADF, ADX, IoT Hub"
 otherServicesDeploymentOutput=($(az deployment group create --name OtherServicesDeployment --resource-group "$rg" --template-file "$otherServicesDeploymentFilePath" --parameters \
