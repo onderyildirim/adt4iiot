@@ -88,7 +88,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     The full syntax for install.sh is below
     ```bash
     Syntax: ./install.sh [-flag=value]
-
+    
     List of optional flags:
     -h,--help              Print this help.
     -s,--subscription      Azure subscription ID to use to deploy resources. 
@@ -169,28 +169,34 @@ When we query data from Azure Digital Twins graph we need to set the root twin. 
 - Select "Command" tab at the bottom pane
 - Change **root twin id** to match the root twin of your hierarchy
 
-    ```KQL
-    .set-or-replace AssetModel <|
-    evaluate azure_digital_twins_query_request("https://<ADT instance>.digitaltwins.azure.net", "SELECT asset, unit, cell, area, site, enterprise FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites JOIN area  RELATED site.rel_has_areas JOIN cell  RELATED area.rel_has_cells JOIN unit  RELATED cell.rel_has_units JOIN asset RELATED unit.rel_has_assets WHERE enterprise.$dtId = '**contoso**'")
-      | project AssetId=tostring(asset.TagId), 
-                DtId=tostring(asset.$dtId), 
-                Asset=tostring(asset.Name), 
-                AssetName=tostring(asset.AssetName), 
-                YearDeployed=tostring(asset.YearDeployed), 
-                AssetModel=tostring(asset.AssetModel), 
-                Capacity=tostring(asset.Capacity), 
-                Unit=tostring(unit.Name), 
-                Cell=tostring(cell.Name), 
-                Area=tostring(area.Name), 
-                Site=tostring(site.Name), 
-                Enterprise=tostring(enterprise.Name), 
-                asset_data=asset, 
-                unit_data=unit, 
-                cell_data=cell, 
-                area_data=area, 
-                site_data=site, 
-                enterprise_data=enterprise
-    ```
+    `.set-or-replace AssetModel <|` <br>
+    `evaluate azure_digital_twins_query_request(` <br>
+        `"https://<ADT instance>.digitaltwins.azure.net",`  <br>
+        `"SELECT asset, unit, cell, area, site, enterprise`  <br>
+        `FROM DIGITALTWINS enterprise JOIN site  RELATED enterprise.rel_has_sites`  <br>
+                                     `JOIN area  RELATED site.rel_has_areas`  <br>
+                                     `JOIN cell  RELATED area.rel_has_cells`  <br>
+                                     `JOIN unit  RELATED cell.rel_has_units`  <br>
+                                     `JOIN asset RELATED unit.rel_has_assets`  <br>
+        `WHERE enterprise.$dtId = '`**contoso**`'")` <br>
+      `| project AssetId=tostring(asset.TagId),` <br>
+      `          DtId=tostring(asset.$dtId),` <br>
+      `          Asset=tostring(asset.Name),` <br>
+      `          AssetName=tostring(asset.AssetName),` <br>
+      `          YearDeployed=tostring(asset.YearDeployed),` <br>
+      `          AssetModel=tostring(asset.AssetModel),` <br>
+      `          Capacity=tostring(asset.Capacity),` <br>
+      `          Unit=tostring(unit.Name),` <br>
+      `          Cell=tostring(cell.Name),` <br>
+      `          Area=tostring(area.Name),` <br>
+      `          Site=tostring(site.Name),` <br>
+      `          Enterprise=tostring(enterprise.Name),` <br>
+      `          asset_data=asset,` <br>
+      `          unit_data=unit,` <br>
+      `          cell_data=cell,` <br>
+      `          area_data=area,` <br>
+      `          site_data=site,` <br>
+      `          enterprise_data=enterprise`
 
 
 ## Contributing
