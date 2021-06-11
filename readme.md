@@ -231,13 +231,13 @@ Therefore to verify proper deployment you need to see Digital Twins properties u
 
 You an use below commands from Azure Shell window to monitor how property values change. Note that you should see a change approximately every minute.
 
-- Query first twin in the sample ($dtid="fr-line2-a3")
+- Query twin in the sample ($dtid="fr-line2-a3")
 
   ```bash
   az dt twin show -n <prefix>assets --twin-id fr-line2-a3 --query "[{TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {TwinId: \"\$dtId\", PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
   ```
 
-- Query first twin in the sample ($dtid="ca-line1-a1")
+- Query twin in the sample ($dtid="ca-line1-a1")
 
   ```bash
   az dt twin show -n <prefix>assets --twin-id ca-line1-a1 --query "[{TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_GOOD', LastUpdated: \"\$metadata\".ITEM_COUNT_GOOD.lastUpdateTime, Value: ITEM_COUNT_GOOD}, {TwinId: \"\$dtId\", PropertyName: 'ITEM_COUNT_BAD', LastUpdated: \"\$metadata\".ITEM_COUNT_BAD.lastUpdateTime, Value: ITEM_COUNT_BAD}, {TwinId: \"\$dtId\", PropertyName: 'STATUS', LastUpdated: \"\$metadata\".STATUS.lastUpdateTime, Value: STATUS}]" --output table
