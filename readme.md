@@ -124,8 +124,8 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     iiot_raw
     | extend Timestamp =  todatetime(rawdata.Timestamp)
     | extend TagId = tostring(rawdata.TagId)
-    | extend AssetId = tostring(rawdata.TagId)
-    | extend Tag = tostring(rawdata.TagId)
+    | extend AssetId = substring(rawdata.TagId, 0, indexof(rawdata.TagId, "."))
+    | extend Tag = substring(rawdata.TagId, indexof(rawdata.TagId, ".")+1)
     | extend Value = todouble(rawdata.Value)
     | project Timestamp, TagId, AssetId, Tag, Value
     }
@@ -148,7 +148,6 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
     ```bash
     az kusto data-connection iot-hub create --cluster-name <dataExplorerClusterName> --data-connection-name <iotHubName> --database-name <dataExplorerDBName> --resource-group <resourceGroupName> --consumer-group adxconsumer --data-format JSON --iot-hub-resource-id <iotHubResourceId> --location <azureDatacenterLocation> --mapping-rule-name "iiot_raw_mapping" --shared-access-policy-name "iothubowner" --table-name "iiot_raw"
     ```
-    <br>
     ```bash
     az datafactory pipeline create-run --factory-name <dataFactoryName> --name <dataFactoryPipelineName> --resource-group <resourceGroupName> --output none
     ```
