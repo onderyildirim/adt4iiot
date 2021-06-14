@@ -1,5 +1,5 @@
 # Azure Digital Twins for Industrial IoT
-###### 15 mins to review documentation, 40 mins for script to run
+###### 15 mins to review documentation, 30 mins for script to run
 
 This sample shows how to use Azure Digital Twins in an industrial environment.
 
@@ -75,12 +75,12 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
   ssh-keygen -m PEM -t rsa -b 4096
   ```
 ### Run installation script
-- Run following to deploy Azure Digital Twins for Industrial IoT sample (~15 minutes):
+- Run following to deploy Azure Digital Twins for Industrial IoT sample (~30 minutes):
 
   ```bash
   ./install.sh
   ```
-  By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "<prefix>-rg". You may also give any prefix you want from the command line parameters 
+  By default it will use first 5 letters of your user name as "prefix" and create all resources in to a resource group named "\<prefix\>-rg". You may also give any prefix you want from the command line parameters 
   ```bash
   ./install.sh --prefix adt4iiot
   ```
@@ -112,7 +112,7 @@ From the [Azure Cloud Shell](https://shell.azure.com/):
 
 ### Post install configuration
 #### Create Data Explorer schema
-- After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
+- After the script finishes, goto Azure Data Explorer resource created in Azure portal, the ADX instance is named as "\<prefix\>adx" 
 - Select "Query" in the left blade
 - Make sure "*iiotdb*" database is selected on the left
 - Run following Data Explorer script in query window to create database schema
@@ -166,7 +166,7 @@ If your connection expires in Azure Shell, you can just open a new connection an
 ### Optional configuration items
 #### Activate Azure Data Factory trigger
 Install script creates a trigger for data factory pipeline to transfer data from ADT into ADX. The trigger however is left disabled. If you would like it to run periodically, follow steps below 
-- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Go to Azure Data Factory instance (named \<prefix\>-syncassets) in Azure Portal
 - Click on "Author & Monitor"
 - Click on "Manage" on the toolbat at the left
 - Click on "Triggers" under "Author"
@@ -176,7 +176,7 @@ Install script creates a trigger for data factory pipeline to transfer data from
 
 #### Set root twin id in Azure Data Factory
 When we query data from Azure Digital Twins graph we need to set the root twin. If you imported the default `twingraph.xlsx` file, the root entity is the twin id `contoso`. If you would like to import your own twin structure, also remember to modify root object in query within the ADF pipeline: 
-- Go to Azure Data Factory instance (named <prefix>-syncassets) in Azure Portal
+- Go to Azure Data Factory instance (named \<prefix\>-syncassets) in Azure Portal
 - Click on "Author & Monitor"
 - Click on "Author" on the toolbat at the left
 - Click on "SyncAssetModel" under "Pipeline"
@@ -244,7 +244,7 @@ You an use below commands from Azure Shell window to monitor how property values
   ```
 
 ### Contexualize Industrial IoT Data with Asset Model data from Azure Digital Twins 
-- Go to Azure Data Explorer resource created in Azure portal, the ADX instance is named as "<prefix>adx" 
+- Go to Azure Data Explorer resource created in Azure portal, the ADX instance is named as "\<prefix\>adx" 
 - Select "Query" in the left blade
 - Make sure "iiotdb" database is selected on the left
 - Run following Data Explorer script in query window to filter IoT data by very attributes contained in Azure Digital Twins
