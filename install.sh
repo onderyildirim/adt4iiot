@@ -251,7 +251,6 @@ fi
 echo "Acquiring device connection string"
 edgeDeviceConnectionString=$(az iot hub device-identity connection-string show --device-id $edgeDeviceId --hub-name $hubName  --resource-group $rg --query 'connectionString' -o tsv)
 
-
 if [ ! -z  $(az network vnet list --resource-group "$rg" --query "[?name=='$networkName'].id" --output tsv) ] 
 then
   echo "Network $networkName already exists."
