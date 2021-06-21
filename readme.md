@@ -261,7 +261,7 @@ You an use below commands from Azure Shell window to monitor how property values
 
 ## Azure Costs
 
-For details on Azure costs of this solution, see the [Azure Pricing Estimate](https://azure.com/e/7e95c78d776b46f38fe6a16b337089e7).
+The base solution consumes *$4.12* Azure credits per day when deployed. For details on Azure costs of this solution, see the [Azure Pricing Estimate](https://azure.com/e/b5e46763e0c9463eab584280419bd26e).
 
 Also note that you can minimize costs but shutting down compute resources when you are not using the solution. Commands to shutdown and start compute resources on demand are given at the end of install script and they are similar to below
 
